@@ -1,18 +1,70 @@
 package v1
 
-import "github.com/chain-signer/chain-signer/pkg/model"
+import "encoding/json"
 
-const APIVersion = model.APIVersion
+const (
+	APIVersion = "v1"
+
+	ChainFamilyEVM  = "evm"
+	ChainFamilyTRON = "tron"
+
+	CustodyModeMVP    = "mvp"
+	CustodyModePKCS11 = "pkcs11"
+
+	OperationEVMTransferLegacy  = "evm_transfer_legacy"
+	OperationEVMTransferEIP1559 = "evm_transfer_eip1559"
+	OperationEVMContractEIP1559 = "evm_contract_call_eip1559"
+	OperationTRXTransfer        = "tron_transfer_trx"
+	OperationTRC20Transfer      = "tron_transfer_trc20"
+)
+
+type Policy struct {
+	AllowedNetworks         []string          `json:"allowed_networks,omitempty"`
+	AllowedChainIDs         []int64           `json:"allowed_chain_ids,omitempty"`
+	MaxValue                string            `json:"max_value,omitempty"`
+	MaxGasLimit             uint64            `json:"max_gas_limit,omitempty"`
+	MaxGasPrice             string            `json:"max_gas_price,omitempty"`
+	MaxFeePerGas            string            `json:"max_fee_per_gas,omitempty"`
+	MaxPriorityFeePerGas    string            `json:"max_priority_fee_per_gas,omitempty"`
+	MaxFeeLimit             int64             `json:"max_fee_limit,omitempty"`
+	AllowedTokenContracts   []string          `json:"allowed_token_contracts,omitempty"`
+	AllowedSelectors        []string          `json:"allowed_selectors,omitempty"`
+	AdditionalPolicyContext map[string]string `json:"additional_policy_context,omitempty"`
+}
+
+func (p Policy) IsZero() bool {
+	return len(p.AllowedNetworks) == 0 &&
+		len(p.AllowedChainIDs) == 0 &&
+		p.MaxValue == "" &&
+		p.MaxGasLimit == 0 &&
+		p.MaxGasPrice == "" &&
+		p.MaxFeePerGas == "" &&
+		p.MaxPriorityFeePerGas == "" &&
+		p.MaxFeeLimit == 0 &&
+		len(p.AllowedTokenContracts) == 0 &&
+		len(p.AllowedSelectors) == 0 &&
+		len(p.AdditionalPolicyContext) == 0
+}
+
+type VersionResponse struct {
+	APIVersion   string `json:"api_version"`
+	BuildVersion string `json:"build_version"`
+}
 
 type CreateKeyRequest struct {
 	KeyID             string            `json:"key_id,omitempty"`
 	ChainFamily       string            `json:"chain_family"`
 	CustodyMode       string            `json:"custody_mode,omitempty"`
 	Labels            map[string]string `json:"labels,omitempty"`
-	Policy            model.Policy      `json:"policy,omitempty"`
+	Policy            Policy            `json:"policy,omitempty"`
 	ImportPrivateKey  string            `json:"import_private_key_hex,omitempty"`
 	PublicKeyHex      string            `json:"public_key_hex,omitempty"`
 	ExternalSignerRef string            `json:"external_signer_ref,omitempty"`
+}
+
+func (r CreateKeyRequest) MarshalJSON() ([]byte, error) {
+	type alias CreateKeyRequest
+	return marshalWithoutEmptyPolicy(alias(r), r.Policy)
 }
 
 type UpdateKeyStatusRequest struct {
@@ -26,11 +78,16 @@ type KeyResponse struct {
 	CustodyMode   string            `json:"custody_mode"`
 	Active        bool              `json:"active"`
 	Labels        map[string]string `json:"labels,omitempty"`
-	Policy        model.Policy      `json:"policy,omitempty"`
+	Policy        Policy            `json:"policy,omitempty"`
 	SignerAddress string            `json:"signer_address"`
 	PublicKeyHex  string            `json:"public_key_hex"`
 	CreatedAt     string            `json:"created_at"`
 	UpdatedAt     string            `json:"updated_at"`
+}
+
+func (r KeyResponse) MarshalJSON() ([]byte, error) {
+	type alias KeyResponse
+	return marshalWithoutEmptyPolicy(alias(r), r.Policy)
 }
 
 type BaseSignRequest struct {
@@ -130,4 +187,20 @@ type RecoverResponse struct {
 	ExpectedSigner  string `json:"expected_signer,omitempty"`
 	MatchesExpected bool   `json:"matches_expected"`
 	TxHash          string `json:"tx_hash"`
+}
+
+func marshalWithoutEmptyPolicy[T any](value T, policy Policy) ([]byte, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	if !policy.IsZero() {
+		return raw, nil
+	}
+	var out map[string]interface{}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, err
+	}
+	delete(out, "policy")
+	return json.Marshal(out)
 }

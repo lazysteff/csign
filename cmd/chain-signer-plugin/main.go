@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/chain-signer/chain-signer/pkg/backend"
+	"github.com/chain-signer/chain-signer/internal/vaultbackend"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"
 	vaultplugin "github.com/hashicorp/vault/sdk/plugin"
@@ -21,7 +21,7 @@ func main() {
 	})
 
 	if err := vaultplugin.Serve(&vaultplugin.ServeOpts{
-		BackendFactoryFunc: backend.Factory,
+		BackendFactoryFunc: vaultbackend.Factory,
 		TLSProviderFunc:    tlsProvider,
 		Logger:             logger,
 	}); err != nil {

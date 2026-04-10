@@ -9,10 +9,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/chain-signer/chain-signer/internal/custody"
+	"github.com/chain-signer/chain-signer/internal/domain"
+	enc "github.com/chain-signer/chain-signer/internal/encoding"
+	"github.com/chain-signer/chain-signer/internal/vaultbackend"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
-	"github.com/chain-signer/chain-signer/pkg/backend"
-	"github.com/chain-signer/chain-signer/pkg/model"
-	signerpkg "github.com/chain-signer/chain-signer/pkg/signer"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
 )
@@ -35,10 +37,10 @@ func TestConformance_MVPEVMOperations(t *testing.T) {
 
 	createResp, createRaw := createKey(t, ctx, b, storage, v1.CreateKeyRequest{
 		KeyID:            "evm-mvp",
-		ChainFamily:      model.ChainFamilyEVM,
-		CustodyMode:      model.CustodyModeMVP,
+		ChainFamily:      v1.ChainFamilyEVM,
+		CustodyMode:      v1.CustodyModeMVP,
 		ImportPrivateKey: testPrivHex,
-		Policy: model.Policy{
+		Policy: v1.Policy{
 			AllowedNetworks:      []string{testEVMNetwork},
 			AllowedChainIDs:      []int64{testEVMChainID},
 			MaxValue:             "1000000000000000000",
@@ -49,7 +51,7 @@ func TestConformance_MVPEVMOperations(t *testing.T) {
 			AllowedTokenContracts: []string{
 				testEVMContract,
 			},
-			AllowedSelectors: []string{model.TRC20TransferSelector},
+			AllowedSelectors: []string{domain.TRC20TransferSelector},
 		},
 	})
 	require.NotContains(t, createRaw, "private_key_hex")
@@ -61,7 +63,7 @@ func TestConformance_MVPEVMOperations(t *testing.T) {
 	legacyReq := v1.EVMLegacyTransferSignRequest{
 		BaseSignRequest: v1.BaseSignRequest{
 			KeyID:         "evm-mvp",
-			ChainFamily:   model.ChainFamilyEVM,
+			ChainFamily:   v1.ChainFamilyEVM,
 			Network:       testEVMNetwork,
 			RequestID:     testRequestID,
 			SourceAddress: createResp.SignerAddress,
@@ -75,20 +77,20 @@ func TestConformance_MVPEVMOperations(t *testing.T) {
 	}
 	legacySign := signEVMLegacy(t, ctx, b, storage, legacyReq)
 	legacyVerify := verifyPayload(t, ctx, b, storage, v1.VerifyRequest{
-		ChainFamily:           model.ChainFamilyEVM,
+		ChainFamily:           v1.ChainFamilyEVM,
 		Network:               testEVMNetwork,
-		Operation:             model.OperationEVMTransferLegacy,
+		Operation:             v1.OperationEVMTransferLegacy,
 		SignedPayload:         legacySign.SignedPayload,
 		ExpectedSignerAddress: createResp.SignerAddress,
 	})
 	require.True(t, legacyVerify.MatchesExpected)
-	require.Equal(t, model.OperationEVMTransferLegacy, legacyVerify.Operation)
+	require.Equal(t, v1.OperationEVMTransferLegacy, legacyVerify.Operation)
 	require.Equal(t, legacySign.TxHash, legacyVerify.TxHash)
 
 	eip1559Req := v1.EVMEIP1559TransferSignRequest{
 		BaseSignRequest: v1.BaseSignRequest{
 			KeyID:         "evm-mvp",
-			ChainFamily:   model.ChainFamilyEVM,
+			ChainFamily:   v1.ChainFamilyEVM,
 			Network:       testEVMNetwork,
 			RequestID:     testRequestID,
 			SourceAddress: createResp.SignerAddress,
@@ -103,19 +105,19 @@ func TestConformance_MVPEVMOperations(t *testing.T) {
 	}
 	eip1559Sign := signEVMEIP1559(t, ctx, b, storage, eip1559Req)
 	eip1559Verify := verifyPayload(t, ctx, b, storage, v1.VerifyRequest{
-		ChainFamily:           model.ChainFamilyEVM,
+		ChainFamily:           v1.ChainFamilyEVM,
 		Network:               testEVMNetwork,
-		Operation:             model.OperationEVMTransferEIP1559,
+		Operation:             v1.OperationEVMTransferEIP1559,
 		SignedPayload:         eip1559Sign.SignedPayload,
 		ExpectedSignerAddress: createResp.SignerAddress,
 	})
 	require.True(t, eip1559Verify.MatchesExpected)
-	require.Equal(t, model.OperationEVMTransferEIP1559, eip1559Verify.Operation)
+	require.Equal(t, v1.OperationEVMTransferEIP1559, eip1559Verify.Operation)
 
 	contractReq := v1.EVMContractCallSignRequest{
 		BaseSignRequest: v1.BaseSignRequest{
 			KeyID:         "evm-mvp",
-			ChainFamily:   model.ChainFamilyEVM,
+			ChainFamily:   v1.ChainFamilyEVM,
 			Network:       testEVMNetwork,
 			RequestID:     testRequestID,
 			SourceAddress: createResp.SignerAddress,
@@ -131,13 +133,13 @@ func TestConformance_MVPEVMOperations(t *testing.T) {
 	}
 	contractSign := signEVMContract(t, ctx, b, storage, contractReq)
 	contractVerify := recoverPayload(t, ctx, b, storage, v1.VerifyRequest{
-		ChainFamily:           model.ChainFamilyEVM,
+		ChainFamily:           v1.ChainFamilyEVM,
 		Network:               testEVMNetwork,
 		SignedPayload:         contractSign.SignedPayload,
 		ExpectedSignerAddress: createResp.SignerAddress,
 	})
 	require.True(t, contractVerify.MatchesExpected)
-	require.Equal(t, model.OperationEVMContractEIP1559, contractVerify.Operation)
+	require.Equal(t, v1.OperationEVMContractEIP1559, contractVerify.Operation)
 }
 
 func TestConformance_MVPTRONOperations(t *testing.T) {
@@ -146,24 +148,24 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 
 	createResp, _ := createKey(t, ctx, b, storage, v1.CreateKeyRequest{
 		KeyID:            "tron-mvp",
-		ChainFamily:      model.ChainFamilyTRON,
-		CustodyMode:      model.CustodyModeMVP,
+		ChainFamily:      v1.ChainFamilyTRON,
+		CustodyMode:      v1.CustodyModeMVP,
 		ImportPrivateKey: testPrivHex,
-		Policy: model.Policy{
+		Policy: v1.Policy{
 			AllowedNetworks: []string{testTRONNetwork},
 			MaxValue:        "1000000000",
 			MaxFeeLimit:     20000000,
 			AllowedTokenContracts: []string{
 				testTRONContract,
 			},
-			AllowedSelectors: []string{model.TRC20TransferSelector},
+			AllowedSelectors: []string{domain.TRC20TransferSelector},
 		},
 	})
 
 	trxSign := signTRX(t, ctx, b, storage, v1.TRXTransferSignRequest{
 		BaseSignRequest: v1.BaseSignRequest{
 			KeyID:         "tron-mvp",
-			ChainFamily:   model.ChainFamilyTRON,
+			ChainFamily:   v1.ChainFamilyTRON,
 			Network:       testTRONNetwork,
 			RequestID:     testRequestID,
 			SourceAddress: createResp.SignerAddress,
@@ -178,19 +180,19 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 		Expiration:    1710000060000,
 	})
 	trxRecover := recoverPayload(t, ctx, b, storage, v1.VerifyRequest{
-		ChainFamily:           model.ChainFamilyTRON,
+		ChainFamily:           v1.ChainFamilyTRON,
 		Network:               testTRONNetwork,
 		SignedPayload:         trxSign.SignedPayload,
 		ExpectedSignerAddress: createResp.SignerAddress,
 	})
 	require.True(t, trxRecover.MatchesExpected)
-	require.Equal(t, model.OperationTRXTransfer, trxRecover.Operation)
+	require.Equal(t, v1.OperationTRXTransfer, trxRecover.Operation)
 	require.Equal(t, trxSign.TxHash, trxRecover.TxHash)
 
 	trc20Sign := signTRC20(t, ctx, b, storage, v1.TRC20TransferSignRequest{
 		BaseSignRequest: v1.BaseSignRequest{
 			KeyID:         "tron-mvp",
-			ChainFamily:   model.ChainFamilyTRON,
+			ChainFamily:   v1.ChainFamilyTRON,
 			Network:       testTRONNetwork,
 			RequestID:     testRequestID,
 			SourceAddress: createResp.SignerAddress,
@@ -206,22 +208,22 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 		Expiration:    1710000060000,
 	})
 	trc20Verify := verifyPayload(t, ctx, b, storage, v1.VerifyRequest{
-		ChainFamily:           model.ChainFamilyTRON,
+		ChainFamily:           v1.ChainFamilyTRON,
 		Network:               testTRONNetwork,
-		Operation:             model.OperationTRC20Transfer,
+		Operation:             v1.OperationTRC20Transfer,
 		SignedPayload:         trc20Sign.SignedPayload,
 		ExpectedSignerAddress: createResp.SignerAddress,
 	})
 	require.True(t, trc20Verify.MatchesExpected)
-	require.Equal(t, model.OperationTRC20Transfer, trc20Verify.Operation)
+	require.Equal(t, v1.OperationTRC20Transfer, trc20Verify.Operation)
 }
 
 func TestConformance_PKCS11StyleExternalSigner(t *testing.T) {
 	ctx := context.Background()
 	privateKey := mustPrivateKey(t, testPrivHex)
 	resolver := staticResolver{
-		materials: map[string]signerpkg.Material{
-			"hsm-1": signerpkg.ExternalMaterial{
+		materials: map[string]custody.Material{
+			"hsm-1": custody.ExternalMaterial{
 				Pub: &privateKey.PublicKey,
 				SignFunc: func(_ context.Context, digest []byte) ([]byte, error) {
 					r, s, err := ecdsa.Sign(rand.Reader, privateKey, digest)
@@ -237,9 +239,9 @@ func TestConformance_PKCS11StyleExternalSigner(t *testing.T) {
 
 	createResp, createRaw := createKey(t, ctx, b, storage, v1.CreateKeyRequest{
 		KeyID:             "evm-pkcs11",
-		ChainFamily:       model.ChainFamilyEVM,
-		CustodyMode:       model.CustodyModePKCS11,
-		PublicKeyHex:      model.PublicKeyHex(&privateKey.PublicKey),
+		ChainFamily:       v1.ChainFamilyEVM,
+		CustodyMode:       v1.CustodyModePKCS11,
+		PublicKeyHex:      enc.EncodeHex(ethcrypto.FromECDSAPub(&privateKey.PublicKey)),
 		ExternalSignerRef: "hsm-1",
 	})
 	require.NotContains(t, createRaw, "private_key_hex")
@@ -247,7 +249,7 @@ func TestConformance_PKCS11StyleExternalSigner(t *testing.T) {
 	signResp := signEVMEIP1559(t, ctx, b, storage, v1.EVMEIP1559TransferSignRequest{
 		BaseSignRequest: v1.BaseSignRequest{
 			KeyID:         "evm-pkcs11",
-			ChainFamily:   model.ChainFamilyEVM,
+			ChainFamily:   v1.ChainFamilyEVM,
 			Network:       testEVMNetwork,
 			RequestID:     testRequestID,
 			SourceAddress: createResp.SignerAddress,
@@ -261,9 +263,9 @@ func TestConformance_PKCS11StyleExternalSigner(t *testing.T) {
 		MaxPriorityFeePerGas: "100",
 	})
 	verifyResp := verifyPayload(t, ctx, b, storage, v1.VerifyRequest{
-		ChainFamily:           model.ChainFamilyEVM,
+		ChainFamily:           v1.ChainFamilyEVM,
 		Network:               testEVMNetwork,
-		Operation:             model.OperationEVMTransferEIP1559,
+		Operation:             v1.OperationEVMTransferEIP1559,
 		SignedPayload:         signResp.SignedPayload,
 		ExpectedSignerAddress: createResp.SignerAddress,
 	})
@@ -276,10 +278,10 @@ func TestConformance_NegativeCases(t *testing.T) {
 
 	createResp, _ := createKey(t, ctx, b, storage, v1.CreateKeyRequest{
 		KeyID:            "negatives",
-		ChainFamily:      model.ChainFamilyEVM,
-		CustodyMode:      model.CustodyModeMVP,
+		ChainFamily:      v1.ChainFamilyEVM,
+		CustodyMode:      v1.CustodyModeMVP,
 		ImportPrivateKey: testPrivHex,
-		Policy: model.Policy{
+		Policy: v1.Policy{
 			AllowedNetworks: []string{testEVMNetwork},
 			AllowedChainIDs: []int64{testEVMChainID},
 			MaxValue:        "1",
@@ -289,7 +291,7 @@ func TestConformance_NegativeCases(t *testing.T) {
 	t.Run("policy denial on cap violation", func(t *testing.T) {
 		_, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/evm/transfers/legacy/sign", map[string]interface{}{
 			"key_id":         "negatives",
-			"chain_family":   model.ChainFamilyEVM,
+			"chain_family":   v1.ChainFamilyEVM,
 			"network":        testEVMNetwork,
 			"request_id":     testRequestID,
 			"source_address": createResp.SignerAddress,
@@ -307,7 +309,7 @@ func TestConformance_NegativeCases(t *testing.T) {
 	t.Run("address mismatch", func(t *testing.T) {
 		_, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/evm/transfers/legacy/sign", map[string]interface{}{
 			"key_id":         "negatives",
-			"chain_family":   model.ChainFamilyEVM,
+			"chain_family":   v1.ChainFamilyEVM,
 			"network":        testEVMNetwork,
 			"request_id":     testRequestID,
 			"source_address": testEVMRecipient,
@@ -329,7 +331,7 @@ func TestConformance_NegativeCases(t *testing.T) {
 		require.NoError(t, err)
 		_, err = handle(t, ctx, b, storage, logical.UpdateOperation, "v1/evm/transfers/legacy/sign", map[string]interface{}{
 			"key_id":         "negatives",
-			"chain_family":   model.ChainFamilyEVM,
+			"chain_family":   v1.ChainFamilyEVM,
 			"network":        testEVMNetwork,
 			"request_id":     testRequestID,
 			"source_address": createResp.SignerAddress,
@@ -346,7 +348,7 @@ func TestConformance_NegativeCases(t *testing.T) {
 
 	t.Run("malformed request", func(t *testing.T) {
 		_, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/evm/transfers/legacy/sign", map[string]interface{}{
-			"chain_family": model.ChainFamilyEVM,
+			"chain_family": v1.ChainFamilyEVM,
 		})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "key_id")
@@ -360,10 +362,10 @@ func TestConformance_NegativeCases(t *testing.T) {
 }
 
 type staticResolver struct {
-	materials map[string]signerpkg.Material
+	materials map[string]custody.Material
 }
 
-func (r staticResolver) ResolveExternal(_ context.Context, key model.Key) (signerpkg.Material, error) {
+func (r staticResolver) ResolveExternal(_ context.Context, key domain.Key) (custody.Material, error) {
 	material, ok := r.materials[key.ExternalSignerRef]
 	if !ok {
 		return nil, errors.New("external signer not found")
@@ -371,78 +373,78 @@ func (r staticResolver) ResolveExternal(_ context.Context, key model.Key) (signe
 	return material, nil
 }
 
-func newTestBackend(t *testing.T, resolver signerpkg.Resolver) (*backend.Backend, logical.Storage) {
+func newTestBackend(t *testing.T, resolver custody.ExternalResolver) (*vaultbackend.Backend, logical.Storage) {
 	t.Helper()
-	b := backend.New(resolver)
+	b := vaultbackend.New(resolver)
 	conf := logical.TestBackendConfig()
 	require.NoError(t, b.Setup(context.Background(), conf))
 	return b, new(logical.InmemStorage)
 }
 
-func createKey(t *testing.T, ctx context.Context, b *backend.Backend, storage logical.Storage, payload v1.CreateKeyRequest) (v1.KeyResponse, map[string]interface{}) {
+func createKey(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.CreateKeyRequest) (v1.KeyResponse, map[string]interface{}) {
 	t.Helper()
 	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/keys", mustMap(t, payload))
 	require.NoError(t, err)
 	return decodeResponse[v1.KeyResponse](t, resp), resp.Data
 }
 
-func readKey(t *testing.T, ctx context.Context, b *backend.Backend, storage logical.Storage, keyID string) (v1.KeyResponse, map[string]interface{}) {
+func readKey(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, keyID string) (v1.KeyResponse, map[string]interface{}) {
 	t.Helper()
 	resp, err := handle(t, ctx, b, storage, logical.ReadOperation, "v1/keys/"+keyID, nil)
 	require.NoError(t, err)
 	return decodeResponse[v1.KeyResponse](t, resp), resp.Data
 }
 
-func signEVMLegacy(t *testing.T, ctx context.Context, b *backend.Backend, storage logical.Storage, payload v1.EVMLegacyTransferSignRequest) v1.SignResponse {
+func signEVMLegacy(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.EVMLegacyTransferSignRequest) v1.SignResponse {
 	t.Helper()
 	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/evm/transfers/legacy/sign", mustMap(t, payload))
 	require.NoError(t, err)
 	return decodeResponse[v1.SignResponse](t, resp)
 }
 
-func signEVMEIP1559(t *testing.T, ctx context.Context, b *backend.Backend, storage logical.Storage, payload v1.EVMEIP1559TransferSignRequest) v1.SignResponse {
+func signEVMEIP1559(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.EVMEIP1559TransferSignRequest) v1.SignResponse {
 	t.Helper()
 	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/evm/transfers/eip1559/sign", mustMap(t, payload))
 	require.NoError(t, err)
 	return decodeResponse[v1.SignResponse](t, resp)
 }
 
-func signEVMContract(t *testing.T, ctx context.Context, b *backend.Backend, storage logical.Storage, payload v1.EVMContractCallSignRequest) v1.SignResponse {
+func signEVMContract(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.EVMContractCallSignRequest) v1.SignResponse {
 	t.Helper()
 	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/evm/contracts/eip1559/sign", mustMap(t, payload))
 	require.NoError(t, err)
 	return decodeResponse[v1.SignResponse](t, resp)
 }
 
-func signTRX(t *testing.T, ctx context.Context, b *backend.Backend, storage logical.Storage, payload v1.TRXTransferSignRequest) v1.SignResponse {
+func signTRX(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.TRXTransferSignRequest) v1.SignResponse {
 	t.Helper()
 	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/tron/transfers/trx/sign", mustMap(t, payload))
 	require.NoError(t, err)
 	return decodeResponse[v1.SignResponse](t, resp)
 }
 
-func signTRC20(t *testing.T, ctx context.Context, b *backend.Backend, storage logical.Storage, payload v1.TRC20TransferSignRequest) v1.SignResponse {
+func signTRC20(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.TRC20TransferSignRequest) v1.SignResponse {
 	t.Helper()
 	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/tron/transfers/trc20/sign", mustMap(t, payload))
 	require.NoError(t, err)
 	return decodeResponse[v1.SignResponse](t, resp)
 }
 
-func verifyPayload(t *testing.T, ctx context.Context, b *backend.Backend, storage logical.Storage, payload v1.VerifyRequest) v1.RecoverResponse {
+func verifyPayload(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.VerifyRequest) v1.RecoverResponse {
 	t.Helper()
 	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/verify", mustMap(t, payload))
 	require.NoError(t, err)
 	return decodeResponse[v1.RecoverResponse](t, resp)
 }
 
-func recoverPayload(t *testing.T, ctx context.Context, b *backend.Backend, storage logical.Storage, payload v1.VerifyRequest) v1.RecoverResponse {
+func recoverPayload(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.VerifyRequest) v1.RecoverResponse {
 	t.Helper()
 	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/recover", mustMap(t, payload))
 	require.NoError(t, err)
 	return decodeResponse[v1.RecoverResponse](t, resp)
 }
 
-func handle(t *testing.T, ctx context.Context, b *backend.Backend, storage logical.Storage, op logical.Operation, path string, data map[string]interface{}) (*logical.Response, error) {
+func handle(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, op logical.Operation, path string, data map[string]interface{}) (*logical.Response, error) {
 	t.Helper()
 	req := logical.TestRequest(t, op, path)
 	req.Storage = storage
@@ -470,7 +472,9 @@ func mustMap(t *testing.T, payload interface{}) map[string]interface{} {
 
 func mustPrivateKey(t *testing.T, raw string) *ecdsa.PrivateKey {
 	t.Helper()
-	key, err := model.ParsePrivateKeyHex(raw)
+	keyBytes, err := enc.DecodeHex(raw)
+	require.NoError(t, err)
+	key, err := ethcrypto.ToECDSA(keyBytes)
 	require.NoError(t, err)
 	return key
 }
