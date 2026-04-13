@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.3.0 - 2026-04-13
+
+Add TRON Stake 2.0 treasury and resource signing support.
+
+Highlights:
+
+- TRON freeze balance v2 signing
+- TRON unfreeze balance v2 signing
+- TRON delegate resource signing
+- TRON undelegate resource signing
+- TRON withdraw expired unfreeze signing
+- `/v1/version` now returns `supported_routes` for runtime capability discovery
+- Go client support for the new TRON resource routes and typed request builders
+- documentation updates for TRON resource routes, API-to-protobuf field mapping, and signer/node validation boundaries
+
+Notes:
+
+- existing EVM and TRON transfer routes remain unchanged
+- `TRON_POWER` unfreeze is intentionally out of scope for this release
+- signer-side expiration freshness windows remain the caller/node responsibility
+- opt-in live TRON integration coverage is available behind the `integration` build tag
+- public Go packages remain limited to `pkg/api/v1` and `pkg/client`
+
 ## v0.2.0 - 2026-04-10
 
 First public release of `chain-signer`.

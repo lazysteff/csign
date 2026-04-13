@@ -18,6 +18,11 @@ It is designed for teams that want applications to request signatures through Va
 - EVM EIP-1559 contract call
 - TRON TRX transfer
 - TRON TRC-20 transfer through `transfer(address,uint256)`
+- TRON Stake 2.0 freeze balance v2
+- TRON Stake 2.0 unfreeze balance v2
+- TRON resource delegation
+- TRON resource undelegation
+- TRON withdraw expired unfreeze
 
 All application-facing signing is typed. There is currently no generic raw signing endpoint.
 
@@ -49,6 +54,11 @@ This repository includes the external signer abstraction and conformance coverag
 - `v1/evm/contracts/eip1559/sign`
 - `v1/tron/transfers/trx/sign`
 - `v1/tron/transfers/trc20/sign`
+- `v1/tron/resources/freeze_v2/sign`
+- `v1/tron/resources/unfreeze_v2/sign`
+- `v1/tron/resources/delegate/sign`
+- `v1/tron/resources/undelegate/sign`
+- `v1/tron/resources/withdraw_expire_unfreeze/sign`
 - `v1/verify`
 - `v1/recover`
 
@@ -213,9 +223,22 @@ The TRON signing endpoints require the transaction envelope fields expected by T
 - `ref_block_hash`
 - `timestamp`
 - `expiration`
-- `fee_limit`
+
+`fee_limit` remains required on the existing TRX and TRC-20 routes. On the new Stake 2.0 resource routes it is optional and, when omitted, defaults to `0` in TRON `raw_data`.
 
 Use `v1/tron/transfers/trx/sign` for TRX transfers and `v1/tron/transfers/trc20/sign` for TRC-20 transfers.
+
+Use the new resource routes for treasury operations:
+
+- `v1/tron/resources/freeze_v2/sign`
+- `v1/tron/resources/unfreeze_v2/sign`
+- `v1/tron/resources/delegate/sign`
+- `v1/tron/resources/undelegate/sign`
+- `v1/tron/resources/withdraw_expire_unfreeze/sign`
+
+The new resource routes intentionally use `owner_address` instead of `source_address`. This matches TRON stake and delegation contract semantics and is not a migration of the older transfer request schemas.
+
+`/v1/version` now returns `supported_routes`, a lexicographically sorted list of public callable mount-relative routes. Callers can use it to detect whether a mounted plugin supports the new TRON resource operations.
 
 ## Use from Go
 

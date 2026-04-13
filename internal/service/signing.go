@@ -92,6 +92,11 @@ func DefaultOperationDescriptors() []OperationDescriptor {
 		newOperation(routes.EVMContractCallSign, policy.ValidateEVMContractCall, evm.SignContractCall),
 		newOperation(routes.TRXTransferSign, policy.ValidateTRXTransfer, tron.SignTRXTransfer),
 		newOperation(routes.TRC20TransferSign, policy.ValidateTRC20Transfer, tron.SignTRC20Transfer),
+		newOperation(routes.TRONFreezeBalanceV2Sign, policy.ValidateTRONFreezeBalanceV2, tron.SignTRONFreezeBalanceV2),
+		newOperation(routes.TRONUnfreezeBalanceV2Sign, policy.ValidateTRONUnfreezeBalanceV2, tron.SignTRONUnfreezeBalanceV2),
+		newOperation(routes.TRONDelegateResourceSign, policy.ValidateTRONDelegateResource, tron.SignTRONDelegateResource),
+		newOperation(routes.TRONUndelegateResourceSign, policy.ValidateTRONUndelegateResource, tron.SignTRONUndelegateResource),
+		newOperation(routes.TRONWithdrawExpireUnfreezeSign, policy.ValidateTRONWithdrawExpireUnfreeze, tron.SignTRONWithdrawExpireUnfreeze),
 	}
 }
 
@@ -184,18 +189,12 @@ func newOperation[T any](
 }
 
 func keyIDFromRequest(request any) (string, error) {
-	switch typed := request.(type) {
-	case *v1.EVMLegacyTransferSignRequest:
-		return typed.KeyID, nil
-	case *v1.EVMEIP1559TransferSignRequest:
-		return typed.KeyID, nil
-	case *v1.EVMContractCallSignRequest:
-		return typed.KeyID, nil
-	case *v1.TRXTransferSignRequest:
-		return typed.KeyID, nil
-	case *v1.TRC20TransferSignRequest:
-		return typed.KeyID, nil
-	default:
+	type keyIDCarrier interface {
+		GetKeyID() string
+	}
+	typed, ok := request.(keyIDCarrier)
+	if !ok {
 		return "", faults.New(faults.Internal, "request does not contain key_id")
 	}
+	return typed.GetKeyID(), nil
 }

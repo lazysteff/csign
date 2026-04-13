@@ -125,19 +125,7 @@ func TestValidateEVMContractCall(t *testing.T) {
 
 func TestValidateTRXAndTRC20Transfers(t *testing.T) {
 	signer := testSignerAddress(t, v1.ChainFamilyTRON)
-	key := domain.Key{
-		ID:            "tron-key",
-		ChainFamily:   v1.ChainFamilyTRON,
-		Active:        true,
-		SignerAddress: signer,
-		Policy: v1.Policy{
-			AllowedNetworks:       []string{testTronNetwork},
-			MaxValue:              "100",
-			MaxFeeLimit:           20000000,
-			AllowedTokenContracts: []string{testTronContract},
-			AllowedSelectors:      []string{domain.TRC20TransferSelector},
-		},
-	}
+	key := baseTRONKey(signer)
 
 	trxReq := &v1.TRXTransferSignRequest{
 		BaseSignRequest: v1.BaseSignRequest{
@@ -186,6 +174,123 @@ func TestValidateTRXAndTRC20Transfers(t *testing.T) {
 	require.Equal(t, faults.PolicyDenied, faults.KindOf(ValidateTRC20Transfer(key, trc20Req)))
 }
 
+func TestValidateTRONResourceRoutes(t *testing.T) {
+	signer := testSignerAddress(t, v1.ChainFamilyTRON)
+	key := baseTRONKey(signer)
+
+	freezeReq := &v1.TRONFreezeBalanceV2SignRequest{
+		TRONOwnerSignRequestBase: v1.TRONOwnerSignRequestBase{
+			KeyID:        "tron-key",
+			ChainFamily:  v1.ChainFamilyTRON,
+			Network:      testTronNetwork,
+			RequestID:    testRequestID,
+			OwnerAddress: signer,
+		},
+		TRONRawDataEnvelope: v1.TRONRawDataEnvelope{
+			RefBlockBytes: "a1b2",
+			RefBlockHash:  "0102030405060708",
+			Timestamp:     1710000000000,
+			Expiration:    1710000060000,
+		},
+		Resource: v1.TRONResourceEnergy,
+		Amount:   10,
+	}
+	require.NoError(t, ValidateTRONFreezeBalanceV2(key, freezeReq))
+
+	freezeReq.Amount = 0
+	require.Equal(t, faults.Invalid, faults.KindOf(ValidateTRONFreezeBalanceV2(key, freezeReq)))
+	freezeReq.Amount = 10
+	freezeReq.RefBlockBytes = "a1"
+	require.Equal(t, faults.Invalid, faults.KindOf(ValidateTRONFreezeBalanceV2(key, freezeReq)))
+	freezeReq.RefBlockBytes = "a1b2"
+	freezeReq.Expiration = freezeReq.Timestamp
+	require.Equal(t, faults.Invalid, faults.KindOf(ValidateTRONFreezeBalanceV2(key, freezeReq)))
+
+	unfreezeReq := &v1.TRONUnfreezeBalanceV2SignRequest{
+		TRONOwnerSignRequestBase: v1.TRONOwnerSignRequestBase{
+			KeyID:        "tron-key",
+			ChainFamily:  v1.ChainFamilyTRON,
+			Network:      testTronNetwork,
+			RequestID:    testRequestID,
+			OwnerAddress: signer,
+		},
+		TRONRawDataEnvelope: v1.TRONRawDataEnvelope{
+			RefBlockBytes: "a1b2",
+			RefBlockHash:  "0102030405060708",
+			Timestamp:     1710000000000,
+			Expiration:    1710000060000,
+		},
+		Resource: v1.TRONResourceTRONPower,
+		Amount:   10,
+	}
+	require.ErrorContains(t, ValidateTRONUnfreezeBalanceV2(key, unfreezeReq), "TRON_POWER")
+
+	delegateReq := &v1.TRONDelegateResourceSignRequest{
+		TRONOwnerSignRequestBase: v1.TRONOwnerSignRequestBase{
+			KeyID:        "tron-key",
+			ChainFamily:  v1.ChainFamilyTRON,
+			Network:      testTronNetwork,
+			RequestID:    testRequestID,
+			OwnerAddress: signer,
+		},
+		TRONRawDataEnvelope: v1.TRONRawDataEnvelope{
+			RefBlockBytes: "a1b2",
+			RefBlockHash:  "0102030405060708",
+			Timestamp:     1710000000000,
+			Expiration:    1710000060000,
+		},
+		ReceiverAddress: testTronRecipient,
+		Resource:        v1.TRONResourceBandwidth,
+		Amount:          11,
+		Lock:            true,
+		LockPeriod:      86400,
+	}
+	require.NoError(t, ValidateTRONDelegateResource(key, delegateReq))
+
+	delegateReq.LockPeriod = 0
+	require.Equal(t, faults.Invalid, faults.KindOf(ValidateTRONDelegateResource(key, delegateReq)))
+	delegateReq.Lock = false
+	delegateReq.LockPeriod = 1
+	require.Equal(t, faults.Invalid, faults.KindOf(ValidateTRONDelegateResource(key, delegateReq)))
+
+	undelegateReq := &v1.TRONUndelegateResourceSignRequest{
+		TRONOwnerSignRequestBase: v1.TRONOwnerSignRequestBase{
+			KeyID:        "tron-key",
+			ChainFamily:  v1.ChainFamilyTRON,
+			Network:      testTronNetwork,
+			RequestID:    testRequestID,
+			OwnerAddress: signer,
+		},
+		TRONRawDataEnvelope: v1.TRONRawDataEnvelope{
+			RefBlockBytes: "a1b2",
+			RefBlockHash:  "0102030405060708",
+			Timestamp:     1710000000000,
+			Expiration:    1710000060000,
+		},
+		ReceiverAddress: testTronRecipient,
+		Resource:        v1.TRONResourceEnergy,
+		Amount:          12,
+	}
+	require.NoError(t, ValidateTRONUndelegateResource(key, undelegateReq))
+
+	withdrawReq := &v1.TRONWithdrawExpireUnfreezeSignRequest{
+		TRONOwnerSignRequestBase: v1.TRONOwnerSignRequestBase{
+			KeyID:        "tron-key",
+			ChainFamily:  v1.ChainFamilyTRON,
+			Network:      testTronNetwork,
+			RequestID:    testRequestID,
+			OwnerAddress: signer,
+		},
+		TRONRawDataEnvelope: v1.TRONRawDataEnvelope{
+			RefBlockBytes: "a1b2",
+			RefBlockHash:  "0102030405060708",
+			Timestamp:     1710000000000,
+			Expiration:    1710000060000,
+		},
+	}
+	require.NoError(t, ValidateTRONWithdrawExpireUnfreeze(key, withdrawReq))
+}
+
 func baseEVMKey(t *testing.T) domain.Key {
 	t.Helper()
 	return domain.Key{
@@ -201,6 +306,22 @@ func baseEVMKey(t *testing.T) domain.Key {
 			MaxGasPrice:          "1000000000",
 			MaxFeePerGas:         "2000000000",
 			MaxPriorityFeePerGas: "1000000000",
+		},
+	}
+}
+
+func baseTRONKey(signer string) domain.Key {
+	return domain.Key{
+		ID:            "tron-key",
+		ChainFamily:   v1.ChainFamilyTRON,
+		Active:        true,
+		SignerAddress: signer,
+		Policy: v1.Policy{
+			AllowedNetworks:       []string{testTronNetwork},
+			MaxValue:              "100",
+			MaxFeeLimit:           20000000,
+			AllowedTokenContracts: []string{testTronContract},
+			AllowedSelectors:      []string{domain.TRC20TransferSelector},
 		},
 	}
 }

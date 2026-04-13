@@ -12,7 +12,6 @@ import (
 	"github.com/chain-signer/chain-signer/internal/faults"
 	"github.com/chain-signer/chain-signer/internal/policy"
 	"github.com/chain-signer/chain-signer/internal/repository"
-	"github.com/chain-signer/chain-signer/internal/routes"
 	"github.com/chain-signer/chain-signer/internal/service"
 	"github.com/chain-signer/chain-signer/internal/version"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -25,6 +24,7 @@ type Backend struct {
 	policies policy.Evaluator
 	custody  custody.Resolver
 	registry *service.Registry
+	routes   []pathRegistration
 	now      func() time.Time
 	recovery *service.RecoveryService
 }
@@ -37,10 +37,11 @@ func New(resolver custody.ExternalResolver) *Backend {
 		now:      time.Now,
 		recovery: service.NewRecoveryService(),
 	}
+	b.routes = b.routeRegistrations()
 	b.Backend = &framework.Backend{
 		Help:        "Chain-Signer is a typed signing backend for EVM and TRON workloads.",
 		BackendType: logical.TypeLogical,
-		Paths:       b.paths(),
+		Paths:       registeredPaths(b.routes),
 	}
 	return b
 }
@@ -53,104 +54,11 @@ func Factory(ctx context.Context, conf *logical.BackendConfig) (logical.Backend,
 	return b, nil
 }
 
-func (b *Backend) paths() []*framework.Path {
-	keyID := map[string]*framework.FieldSchema{
-		"key_id": {Type: framework.TypeString},
-	}
-
-	paths := []*framework.Path{
-		{
-			Pattern:             routes.Version + `/?`,
-			TakesArbitraryInput: true,
-			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.ReadOperation: &framework.PathOperation{
-					Callback: b.handleVersion,
-					Summary:  "Read API and build version metadata.",
-				},
-			},
-		},
-		{
-			Pattern:             routes.Keys + `/?`,
-			TakesArbitraryInput: true,
-			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.UpdateOperation: &framework.PathOperation{
-					Callback: b.handleCreateKey,
-					Summary:  "Create or import a chain-bound signing key.",
-				},
-				logical.ListOperation: &framework.PathOperation{
-					Callback: b.handleListKeys,
-					Summary:  "List configured key IDs.",
-				},
-			},
-		},
-		{
-			Pattern:             routes.Keys + `/` + framework.GenericNameRegex("key_id"),
-			Fields:              keyID,
-			TakesArbitraryInput: true,
-			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.ReadOperation: &framework.PathOperation{
-					Callback: b.handleReadKey,
-					Summary:  "Read key metadata.",
-				},
-			},
-		},
-		{
-			Pattern:             routes.Keys + `/` + framework.GenericNameRegex("key_id") + `/status`,
-			Fields:              keyID,
-			TakesArbitraryInput: true,
-			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.UpdateOperation: &framework.PathOperation{
-					Callback: b.handleUpdateKeyStatus,
-					Summary:  "Enable or disable a key.",
-				},
-			},
-		},
-		{
-			Pattern:             routes.Verify,
-			TakesArbitraryInput: true,
-			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.UpdateOperation: &framework.PathOperation{
-					Callback: b.handleVerify,
-					Summary:  "Verify a signed payload and expected signer metadata.",
-				},
-			},
-		},
-		{
-			Pattern:             routes.Recover,
-			TakesArbitraryInput: true,
-			Operations: map[logical.Operation]framework.OperationHandler{
-				logical.UpdateOperation: &framework.PathOperation{
-					Callback: b.handleRecover,
-					Summary:  "Recover signer metadata from a signed payload.",
-				},
-			},
-		},
-	}
-
-	for _, route := range b.registry.Routes() {
-		paths = append(paths, b.signPath(route))
-	}
-
-	return paths
-}
-
-func (b *Backend) signPath(route string) *framework.Path {
-	return &framework.Path{
-		Pattern:             route,
-		TakesArbitraryInput: true,
-		Operations: map[logical.Operation]framework.OperationHandler{
-			logical.UpdateOperation: &framework.PathOperation{
-				Callback: b.handleSign(route),
-				Summary:  "Handle a typed signing request.",
-			},
-		},
-	}
-}
-
 func (b *Backend) handleVersion(_ context.Context, _ *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
 	return response(v1.VersionResponse{
-		APIVersion:   v1.APIVersion,
-		BuildVersion: version.Version,
+		APIVersion:      v1.APIVersion,
+		BuildVersion:    version.Version,
+		SupportedRoutes: registeredPublicRoutes(b.routes),
 	}), nil
 }
 

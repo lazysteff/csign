@@ -41,6 +41,21 @@ func TestBackendRoutesAndVerbsStayPinned(t *testing.T) {
 		routes.TRC20TransferSign: {
 			logical.UpdateOperation,
 		},
+		routes.TRONFreezeBalanceV2Sign: {
+			logical.UpdateOperation,
+		},
+		routes.TRONUnfreezeBalanceV2Sign: {
+			logical.UpdateOperation,
+		},
+		routes.TRONDelegateResourceSign: {
+			logical.UpdateOperation,
+		},
+		routes.TRONUndelegateResourceSign: {
+			logical.UpdateOperation,
+		},
+		routes.TRONWithdrawExpireUnfreezeSign: {
+			logical.UpdateOperation,
+		},
 		routes.Verify: {
 			logical.UpdateOperation,
 		},

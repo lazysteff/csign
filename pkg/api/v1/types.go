@@ -11,11 +11,16 @@ const (
 	CustodyModeMVP    = "mvp"
 	CustodyModePKCS11 = "pkcs11"
 
-	OperationEVMTransferLegacy  = "evm_transfer_legacy"
-	OperationEVMTransferEIP1559 = "evm_transfer_eip1559"
-	OperationEVMContractEIP1559 = "evm_contract_call_eip1559"
-	OperationTRXTransfer        = "tron_transfer_trx"
-	OperationTRC20Transfer      = "tron_transfer_trc20"
+	OperationEVMTransferLegacy          = "evm_transfer_legacy"
+	OperationEVMTransferEIP1559         = "evm_transfer_eip1559"
+	OperationEVMContractEIP1559         = "evm_contract_call_eip1559"
+	OperationTRXTransfer                = "tron_transfer_trx"
+	OperationTRC20Transfer              = "tron_transfer_trc20"
+	OperationTRONFreezeBalanceV2        = "tron_freeze_balance_v2"
+	OperationTRONUnfreezeBalanceV2      = "tron_unfreeze_balance_v2"
+	OperationTRONDelegateResource       = "tron_delegate_resource"
+	OperationTRONUndelegateResource     = "tron_undelegate_resource"
+	OperationTRONWithdrawExpireUnfreeze = "tron_withdraw_expire_unfreeze"
 )
 
 type Policy struct {
@@ -47,8 +52,9 @@ func (p Policy) IsZero() bool {
 }
 
 type VersionResponse struct {
-	APIVersion   string `json:"api_version"`
-	BuildVersion string `json:"build_version"`
+	APIVersion      string   `json:"api_version"`
+	BuildVersion    string   `json:"build_version"`
+	SupportedRoutes []string `json:"supported_routes,omitempty"`
 }
 
 type CreateKeyRequest struct {
@@ -98,6 +104,10 @@ type BaseSignRequest struct {
 	Labels        map[string]string `json:"labels,omitempty"`
 	ApprovalRef   string            `json:"approval_ref,omitempty"`
 	SourceAddress string            `json:"source_address"`
+}
+
+func (r BaseSignRequest) GetKeyID() string {
+	return r.KeyID
 }
 
 type EVMLegacyTransferSignRequest struct {

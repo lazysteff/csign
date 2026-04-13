@@ -178,19 +178,23 @@ func ValidateTRC20Transfer(key domain.Key, req *v1.TRC20TransferSignRequest) err
 }
 
 func validateBase(key domain.Key, req v1.BaseSignRequest, expectedChainFamily string, chainID *int64) error {
+	return validateBaseFields(key, req.ChainFamily, req.Network, req.SourceAddress, "source address", expectedChainFamily, chainID)
+}
+
+func validateBaseFields(key domain.Key, requestChainFamily, network, signerAddress, signerLabel, expectedChainFamily string, chainID *int64) error {
 	if !key.Active {
 		return faults.Newf(faults.PolicyDenied, "key %q is disabled", key.ID)
 	}
-	if domain.NormalizeChainFamily(req.ChainFamily) != expectedChainFamily {
-		return faults.Newf(faults.Invalid, "request chain family %q does not match endpoint", req.ChainFamily)
+	if domain.NormalizeChainFamily(requestChainFamily) != expectedChainFamily {
+		return faults.Newf(faults.Invalid, "request chain family %q does not match endpoint", requestChainFamily)
 	}
 	if domain.NormalizeChainFamily(key.ChainFamily) != expectedChainFamily {
 		return faults.Newf(faults.Invalid, "key %q is bound to chain family %q", key.ID, key.ChainFamily)
 	}
-	if !chain.EqualAddress(expectedChainFamily, req.SourceAddress, key.SignerAddress) {
-		return faults.New(faults.Invalid, "source address does not match key signer address")
+	if !chain.EqualAddress(expectedChainFamily, signerAddress, key.SignerAddress) {
+		return faults.Newf(faults.Invalid, "%s does not match key signer address", signerLabel)
 	}
-	if err := enforceNetwork(key.Policy, req.Network, chainID); err != nil {
+	if err := enforceNetwork(key.Policy, network, chainID); err != nil {
 		return err
 	}
 	return nil

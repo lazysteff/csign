@@ -63,3 +63,31 @@ func TestDecodeResponseKeyResponseAndFieldString(t *testing.T) {
 	require.Equal(t, "key-1", fieldString(fields, "key_id"))
 	require.Equal(t, "", fieldString(fields, "missing"))
 }
+
+func TestHandleVersionIncludesSupportedRoutes(t *testing.T) {
+	backend := New(nil)
+	resp, err := backend.handleVersion(nil, nil, nil)
+	require.NoError(t, err)
+
+	var payload v1.VersionResponse
+	require.NoError(t, decode(resp.Data, &payload))
+	require.Equal(t, registeredPublicRoutes(backend.routes), payload.SupportedRoutes)
+	require.Equal(t, []string{
+		"v1/evm/contracts/eip1559/sign",
+		"v1/evm/transfers/eip1559/sign",
+		"v1/evm/transfers/legacy/sign",
+		"v1/keys",
+		"v1/keys/{key_id}",
+		"v1/keys/{key_id}/status",
+		"v1/recover",
+		"v1/tron/resources/delegate/sign",
+		"v1/tron/resources/freeze_v2/sign",
+		"v1/tron/resources/undelegate/sign",
+		"v1/tron/resources/unfreeze_v2/sign",
+		"v1/tron/resources/withdraw_expire_unfreeze/sign",
+		"v1/tron/transfers/trc20/sign",
+		"v1/tron/transfers/trx/sign",
+		"v1/verify",
+		"v1/version",
+	}, payload.SupportedRoutes)
+}

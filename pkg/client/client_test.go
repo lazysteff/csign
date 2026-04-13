@@ -14,8 +14,9 @@ func TestVersionDecodesTypedResponse(t *testing.T) {
 	logical := &fakeLogical{
 		readSecret: &api.Secret{
 			Data: map[string]interface{}{
-				"api_version":   v1.APIVersion,
-				"build_version": "v0.2.0",
+				"api_version":      v1.APIVersion,
+				"build_version":    "v0.3.0",
+				"supported_routes": []interface{}{"v1/version", "v1/verify"},
 			},
 		},
 	}
@@ -24,7 +25,8 @@ func TestVersionDecodesTypedResponse(t *testing.T) {
 	resp, err := client.Version(context.Background())
 	require.NoError(t, err)
 	require.Equal(t, v1.APIVersion, resp.APIVersion)
-	require.Equal(t, "v0.2.0", resp.BuildVersion)
+	require.Equal(t, "v0.3.0", resp.BuildVersion)
+	require.Equal(t, []string{"v1/version", "v1/verify"}, resp.SupportedRoutes)
 }
 
 func TestKeysListDecodesVaultListShape(t *testing.T) {
@@ -54,18 +56,57 @@ func TestSigningPropagatesTransportErrors(t *testing.T) {
 	require.ErrorContains(t, err, "boom")
 }
 
+func TestTRONResourceSigningUsesExpectedRoute(t *testing.T) {
+	logical := &fakeLogical{
+		writeSecret: &api.Secret{
+			Data: map[string]interface{}{
+				"api_version": v1.APIVersion,
+				"key_id":      "tron-key",
+			},
+		},
+	}
+	client := New(logical, "chain-signer")
+	_, err := client.Signing.SignTRONFreezeBalanceV2(context.Background(), v1.TRONFreezeBalanceV2SignRequest{
+		TRONOwnerSignRequestBase: NewTRONOwnerSignRequestBase("tron-key", "tron-nile", "req-1", "TQ3f6xYfQudrM1J8XG2k6wN1KQkPqM7g7d"),
+		TRONRawDataEnvelope: v1.TRONRawDataEnvelope{
+			RefBlockBytes: "a1b2",
+			RefBlockHash:  "0102030405060708",
+			Timestamp:     1710000000000,
+			Expiration:    1710000060000,
+		},
+		Resource: v1.TRONResourceEnergy,
+		Amount:   1,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "chain-signer/v1/tron/resources/freeze_v2/sign", logical.lastWritePath)
+}
+
+func TestTRONRequestBuildersDefaultChainFamily(t *testing.T) {
+	base := NewTRONOwnerSignRequestBase("tron-key", "tron-nile", "req-1", "TP4XxLr5K8NvL8nRc1rER6S1PqrgQ4QXbQ")
+	req := NewTRONDelegateResourceRequest(base, v1.TRONRawDataEnvelope{
+		RefBlockBytes: "a1b2",
+		RefBlockHash:  "0102030405060708",
+		Timestamp:     1710000000000,
+		Expiration:    1710000060000,
+	}, "TSvT6Bg3siokv3dbdtt9o4oM1CTXmymGn1", v1.TRONResourceBandwidth, 10, false, 0)
+	require.Equal(t, v1.ChainFamilyTRON, req.ChainFamily)
+	require.Equal(t, int64(10), req.Amount)
+}
+
 type fakeLogical struct {
-	readSecret  *api.Secret
-	listSecret  *api.Secret
-	writeSecret *api.Secret
-	writeErr    error
+	readSecret    *api.Secret
+	listSecret    *api.Secret
+	writeSecret   *api.Secret
+	writeErr      error
+	lastWritePath string
 }
 
 func (f *fakeLogical) ReadWithContext(context.Context, string) (*api.Secret, error) {
 	return f.readSecret, nil
 }
 
-func (f *fakeLogical) WriteWithContext(context.Context, string, map[string]interface{}) (*api.Secret, error) {
+func (f *fakeLogical) WriteWithContext(_ context.Context, path string, _ map[string]interface{}) (*api.Secret, error) {
+	f.lastWritePath = path
 	if f.writeErr != nil {
 		return nil, f.writeErr
 	}

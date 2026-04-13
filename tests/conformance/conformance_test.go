@@ -162,6 +162,10 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 		},
 	})
 
+	versionResp := readVersion(t, ctx, b, storage)
+	require.Contains(t, versionResp.SupportedRoutes, "v1/tron/resources/freeze_v2/sign")
+	require.Contains(t, versionResp.SupportedRoutes, "v1/tron/resources/withdraw_expire_unfreeze/sign")
+
 	trxSign := signTRX(t, ctx, b, storage, v1.TRXTransferSignRequest{
 		BaseSignRequest: v1.BaseSignRequest{
 			KeyID:         "tron-mvp",
@@ -216,6 +220,127 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 	})
 	require.True(t, trc20Verify.MatchesExpected)
 	require.Equal(t, v1.OperationTRC20Transfer, trc20Verify.Operation)
+
+	resourceEnvelope := v1.TRONRawDataEnvelope{
+		RefBlockBytes: "a1b2",
+		RefBlockHash:  "0102030405060708",
+		Timestamp:     1710000000000,
+		Expiration:    1710000060000,
+		FeeLimit:      int64Ptr(5000000),
+	}
+
+	freezeSign := signTRONFreezeBalanceV2(t, ctx, b, storage, v1.TRONFreezeBalanceV2SignRequest{
+		TRONOwnerSignRequestBase: v1.TRONOwnerSignRequestBase{
+			KeyID:        "tron-mvp",
+			ChainFamily:  v1.ChainFamilyTRON,
+			Network:      testTRONNetwork,
+			RequestID:    testRequestID,
+			OwnerAddress: createResp.SignerAddress,
+		},
+		TRONRawDataEnvelope: resourceEnvelope,
+		Resource:            v1.TRONResourceEnergy,
+		Amount:              10,
+	})
+	freezeRecover := recoverPayload(t, ctx, b, storage, v1.VerifyRequest{
+		ChainFamily:           v1.ChainFamilyTRON,
+		Network:               testTRONNetwork,
+		SignedPayload:         freezeSign.SignedPayload,
+		ExpectedSignerAddress: createResp.SignerAddress,
+	})
+	require.True(t, freezeRecover.MatchesExpected)
+	require.Equal(t, v1.OperationTRONFreezeBalanceV2, freezeRecover.Operation)
+
+	unfreezeSign := signTRONUnfreezeBalanceV2(t, ctx, b, storage, v1.TRONUnfreezeBalanceV2SignRequest{
+		TRONOwnerSignRequestBase: v1.TRONOwnerSignRequestBase{
+			KeyID:        "tron-mvp",
+			ChainFamily:  v1.ChainFamilyTRON,
+			Network:      testTRONNetwork,
+			RequestID:    testRequestID,
+			OwnerAddress: createResp.SignerAddress,
+		},
+		TRONRawDataEnvelope: resourceEnvelope,
+		Resource:            v1.TRONResourceBandwidth,
+		Amount:              5,
+	})
+	unfreezeRecover := recoverPayload(t, ctx, b, storage, v1.VerifyRequest{
+		ChainFamily:           v1.ChainFamilyTRON,
+		Network:               testTRONNetwork,
+		SignedPayload:         unfreezeSign.SignedPayload,
+		ExpectedSignerAddress: createResp.SignerAddress,
+	})
+	require.True(t, unfreezeRecover.MatchesExpected)
+	require.Equal(t, v1.OperationTRONUnfreezeBalanceV2, unfreezeRecover.Operation)
+
+	delegateSign := signTRONDelegateResource(t, ctx, b, storage, v1.TRONDelegateResourceSignRequest{
+		TRONOwnerSignRequestBase: v1.TRONOwnerSignRequestBase{
+			KeyID:        "tron-mvp",
+			ChainFamily:  v1.ChainFamilyTRON,
+			Network:      testTRONNetwork,
+			RequestID:    testRequestID,
+			OwnerAddress: createResp.SignerAddress,
+		},
+		TRONRawDataEnvelope: resourceEnvelope,
+		ReceiverAddress:     testTRONRecipient,
+		Resource:            v1.TRONResourceEnergy,
+		Amount:              4,
+		Lock:                true,
+		LockPeriod:          86400,
+	})
+	delegateVerify := verifyPayload(t, ctx, b, storage, v1.VerifyRequest{
+		ChainFamily:           v1.ChainFamilyTRON,
+		Network:               testTRONNetwork,
+		Operation:             v1.OperationTRONDelegateResource,
+		SignedPayload:         delegateSign.SignedPayload,
+		ExpectedSignerAddress: createResp.SignerAddress,
+	})
+	require.True(t, delegateVerify.MatchesExpected)
+	require.Equal(t, v1.OperationTRONDelegateResource, delegateVerify.Operation)
+
+	undelegateSign := signTRONUndelegateResource(t, ctx, b, storage, v1.TRONUndelegateResourceSignRequest{
+		TRONOwnerSignRequestBase: v1.TRONOwnerSignRequestBase{
+			KeyID:        "tron-mvp",
+			ChainFamily:  v1.ChainFamilyTRON,
+			Network:      testTRONNetwork,
+			RequestID:    testRequestID,
+			OwnerAddress: createResp.SignerAddress,
+		},
+		TRONRawDataEnvelope: resourceEnvelope,
+		ReceiverAddress:     testTRONRecipient,
+		Resource:            v1.TRONResourceBandwidth,
+		Amount:              3,
+	})
+	undelegateRecover := recoverPayload(t, ctx, b, storage, v1.VerifyRequest{
+		ChainFamily:           v1.ChainFamilyTRON,
+		Network:               testTRONNetwork,
+		SignedPayload:         undelegateSign.SignedPayload,
+		ExpectedSignerAddress: createResp.SignerAddress,
+	})
+	require.True(t, undelegateRecover.MatchesExpected)
+	require.Equal(t, v1.OperationTRONUndelegateResource, undelegateRecover.Operation)
+
+	withdrawSign := signTRONWithdrawExpireUnfreeze(t, ctx, b, storage, v1.TRONWithdrawExpireUnfreezeSignRequest{
+		TRONOwnerSignRequestBase: v1.TRONOwnerSignRequestBase{
+			KeyID:        "tron-mvp",
+			ChainFamily:  v1.ChainFamilyTRON,
+			Network:      testTRONNetwork,
+			RequestID:    testRequestID,
+			OwnerAddress: createResp.SignerAddress,
+		},
+		TRONRawDataEnvelope: v1.TRONRawDataEnvelope{
+			RefBlockBytes: "a1b2",
+			RefBlockHash:  "0102030405060708",
+			Timestamp:     1710000000000,
+			Expiration:    1710000060000,
+		},
+	})
+	withdrawRecover := recoverPayload(t, ctx, b, storage, v1.VerifyRequest{
+		ChainFamily:           v1.ChainFamilyTRON,
+		Network:               testTRONNetwork,
+		SignedPayload:         withdrawSign.SignedPayload,
+		ExpectedSignerAddress: createResp.SignerAddress,
+	})
+	require.True(t, withdrawRecover.MatchesExpected)
+	require.Equal(t, v1.OperationTRONWithdrawExpireUnfreeze, withdrawRecover.Operation)
 }
 
 func TestConformance_PKCS11StyleExternalSigner(t *testing.T) {
@@ -430,6 +555,48 @@ func signTRC20(t *testing.T, ctx context.Context, b *vaultbackend.Backend, stora
 	return decodeResponse[v1.SignResponse](t, resp)
 }
 
+func signTRONFreezeBalanceV2(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.TRONFreezeBalanceV2SignRequest) v1.SignResponse {
+	t.Helper()
+	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/tron/resources/freeze_v2/sign", mustMap(t, payload))
+	require.NoError(t, err)
+	return decodeResponse[v1.SignResponse](t, resp)
+}
+
+func signTRONUnfreezeBalanceV2(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.TRONUnfreezeBalanceV2SignRequest) v1.SignResponse {
+	t.Helper()
+	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/tron/resources/unfreeze_v2/sign", mustMap(t, payload))
+	require.NoError(t, err)
+	return decodeResponse[v1.SignResponse](t, resp)
+}
+
+func signTRONDelegateResource(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.TRONDelegateResourceSignRequest) v1.SignResponse {
+	t.Helper()
+	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/tron/resources/delegate/sign", mustMap(t, payload))
+	require.NoError(t, err)
+	return decodeResponse[v1.SignResponse](t, resp)
+}
+
+func signTRONUndelegateResource(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.TRONUndelegateResourceSignRequest) v1.SignResponse {
+	t.Helper()
+	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/tron/resources/undelegate/sign", mustMap(t, payload))
+	require.NoError(t, err)
+	return decodeResponse[v1.SignResponse](t, resp)
+}
+
+func signTRONWithdrawExpireUnfreeze(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.TRONWithdrawExpireUnfreezeSignRequest) v1.SignResponse {
+	t.Helper()
+	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/tron/resources/withdraw_expire_unfreeze/sign", mustMap(t, payload))
+	require.NoError(t, err)
+	return decodeResponse[v1.SignResponse](t, resp)
+}
+
+func readVersion(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage) v1.VersionResponse {
+	t.Helper()
+	resp, err := handle(t, ctx, b, storage, logical.ReadOperation, "v1/version", nil)
+	require.NoError(t, err)
+	return decodeResponse[v1.VersionResponse](t, resp)
+}
+
 func verifyPayload(t *testing.T, ctx context.Context, b *vaultbackend.Backend, storage logical.Storage, payload v1.VerifyRequest) v1.RecoverResponse {
 	t.Helper()
 	resp, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/verify", mustMap(t, payload))
@@ -486,4 +653,8 @@ func sig64(r, s *big.Int) []byte {
 	copy(out[32-len(rb):32], rb)
 	copy(out[64-len(sb):], sb)
 	return out
+}
+
+func int64Ptr(value int64) *int64 {
+	return &value
 }

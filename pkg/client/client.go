@@ -136,6 +136,26 @@ func (c *SigningClient) SignTRC20Transfer(ctx context.Context, req v1.TRC20Trans
 	return c.sign(ctx, routes.TRC20TransferSign, req)
 }
 
+func (c *SigningClient) SignTRONFreezeBalanceV2(ctx context.Context, req v1.TRONFreezeBalanceV2SignRequest) (*v1.SignResponse, error) {
+	return c.sign(ctx, routes.TRONFreezeBalanceV2Sign, req)
+}
+
+func (c *SigningClient) SignTRONUnfreezeBalanceV2(ctx context.Context, req v1.TRONUnfreezeBalanceV2SignRequest) (*v1.SignResponse, error) {
+	return c.sign(ctx, routes.TRONUnfreezeBalanceV2Sign, req)
+}
+
+func (c *SigningClient) SignTRONDelegateResource(ctx context.Context, req v1.TRONDelegateResourceSignRequest) (*v1.SignResponse, error) {
+	return c.sign(ctx, routes.TRONDelegateResourceSign, req)
+}
+
+func (c *SigningClient) SignTRONUndelegateResource(ctx context.Context, req v1.TRONUndelegateResourceSignRequest) (*v1.SignResponse, error) {
+	return c.sign(ctx, routes.TRONUndelegateResourceSign, req)
+}
+
+func (c *SigningClient) SignTRONWithdrawExpireUnfreeze(ctx context.Context, req v1.TRONWithdrawExpireUnfreezeSignRequest) (*v1.SignResponse, error) {
+	return c.sign(ctx, routes.TRONWithdrawExpireUnfreezeSign, req)
+}
+
 func (c *SigningClient) sign(ctx context.Context, path string, payload any) (*v1.SignResponse, error) {
 	var out v1.SignResponse
 	if err := c.client.write(ctx, path, payload, &out); err != nil {

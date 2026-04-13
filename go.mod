@@ -8,6 +8,7 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3
 	github.com/hashicorp/vault/api v1.16.0
 	github.com/hashicorp/vault/sdk v0.25.1
+	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -37,6 +38,7 @@ require (
 	github.com/ethereum/c-kzg-4844/v2 v2.1.6 // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/fatih/color v1.19.0 // indirect
+	github.com/fbsobreira/go-bip39 v1.2.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -101,7 +103,6 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sasha-s/go-deadlock v0.3.5 // indirect
 	github.com/shengdoushi/base58 v1.0.0 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/supranational/blst v0.3.16 // indirect
 	github.com/zondax/hid v0.9.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
