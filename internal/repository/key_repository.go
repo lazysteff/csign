@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -52,12 +53,33 @@ func (r *VaultKeyRepository) GetKey(ctx context.Context, keyID string) (*domain.
 }
 
 func (r *VaultKeyRepository) ListKeyIDs(ctx context.Context) ([]string, error) {
-	keys, err := r.storage.List(ctx, keyPrefix)
+	keys, err := r.listKeyIDs(ctx, keyPrefix, "")
 	if err != nil {
 		return nil, fmt.Errorf("list keys: %w", err)
 	}
 	sort.Strings(keys)
 	return keys, nil
+}
+
+func (r *VaultKeyRepository) listKeyIDs(ctx context.Context, prefix, keyIDPrefix string) ([]string, error) {
+	keys, err := r.storage.List(ctx, prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]string, 0, len(keys))
+	for _, key := range keys {
+		if strings.HasSuffix(key, "/") {
+			nested, err := r.listKeyIDs(ctx, prefix+key, keyIDPrefix+key)
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, nested...)
+			continue
+		}
+		ids = append(ids, keyIDPrefix+key)
+	}
+	return ids, nil
 }
 
 func keyPath(keyID string) string {

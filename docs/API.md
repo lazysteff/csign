@@ -25,7 +25,7 @@ Vault wraps plugin responses under the normal Vault top-level envelope. The plug
 - `POST v1/keys`
 - `LIST v1/keys`
 - `GET v1/keys/:key_id`
-- `POST v1/keys/:key_id/status`
+- `POST v1/key-status/:key_id`
 
 ### Signing
 
@@ -55,6 +55,13 @@ Vault wraps plugin responses under the normal Vault top-level envelope. The plug
 - `signed_payload` is always returned as a hex string and `payload_encoding` is currently always `hex`.
 - `request_id`, `approval_ref`, and `labels` are accepted on sign requests as caller metadata. They are not echoed back in sign responses.
 - Key responses never include `private_key_hex`.
+- Hierarchical slash-delimited `key_id` values are supported end-to-end across create/import, read, list, status mutation, and signing.
+- A valid `key_id` is one or more non-empty slash-delimited segments.
+- Invalid `key_id` values are rejected if they are empty, start with `/`, end with `/`, contain an empty segment, or contain `.` or `..` as a segment.
+- Slash `/` is a structural delimiter inside `key_id`.
+- Validation runs on decoded `key_id` values.
+- Clients must escape each `key_id` segment separately when constructing paths.
+- Percent-encoding must not be used to create an alternate interpretation of `/`.
 
 ## Happy path: EVM EIP-1559 transfer
 
@@ -80,14 +87,14 @@ Example response body:
 {
   "data": {
     "api_version": "v1",
-    "build_version": "v0.3.0",
+    "build_version": "v0.4.0",
     "supported_routes": [
       "v1/evm/contracts/eip1559/sign",
       "v1/evm/transfers/eip1559/sign",
       "v1/evm/transfers/legacy/sign",
+      "v1/key-status/{key_id}",
       "v1/keys",
       "v1/keys/{key_id}",
-      "v1/keys/{key_id}/status",
       "v1/recover",
       "v1/tron/resources/delegate/sign",
       "v1/tron/resources/freeze_v2/sign",
@@ -292,7 +299,7 @@ Request type: `CreateKeyRequest`
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `key_id` | string | no | Explicit key identifier. If omitted, the plugin generates one. |
+| `key_id` | string | no | Explicit key identifier. If omitted, the plugin generates one. Hierarchical slash-delimited IDs are supported end-to-end. |
 | `chain_family` | string | yes | `evm` or `tron`. |
 | `custody_mode` | string | no | `mvp` or `pkcs11`. Defaults to `mvp`. |
 | `labels` | object | no | Arbitrary metadata stored with the key. |
@@ -326,6 +333,8 @@ Notes:
 
 Lists configured key IDs.
 
+The plugin recursively traverses the `keys/` storage subtree and returns full logical leaf `key_id` values only. Intermediate prefixes are never returned as keys.
+
 Vault HTTP clients can use `LIST /v1/chain-signer/v1/keys` or `GET /v1/chain-signer/v1/keys?list=true`.
 
 Example response body:
@@ -343,13 +352,13 @@ Example response body:
 
 ### `GET v1/keys/:key_id`
 
-Reads key metadata.
+Reads key metadata. The route is greedy over the remaining path, so hierarchical slash-delimited `key_id` values are read unchanged.
 
 Response type: `KeyResponse`
 
-### `POST v1/keys/:key_id/status`
+### `POST v1/key-status/:key_id`
 
-Enables or disables a key.
+Enables or disables a key. This is the only supported status mutation route.
 
 Request type: `UpdateKeyStatusRequest`
 
@@ -360,6 +369,8 @@ Request type: `UpdateKeyStatusRequest`
 ```
 
 Response type: `KeyResponse`
+
+The legacy `POST v1/keys/:key_id/status` route has been removed.
 
 ## Sign request base fields
 
@@ -504,7 +515,7 @@ Request type: `TRONUnfreezeBalanceV2SignRequest`
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `owner_address` | string | yes | Owner Base58 address. |
-| `resource` | string | yes | `BANDWIDTH` or `ENERGY`. `TRON_POWER` is intentionally rejected in `v0.3.0`. |
+| `resource` | string | yes | `BANDWIDTH` or `ENERGY`. `TRON_POWER` is intentionally rejected in `v0.4.0`. |
 | `amount` | int64 | yes | Amount mapped to `unfreeze_balance`. Must be greater than `0`. |
 | `fee_limit` | int64 | no | Copied into `raw_data.fee_limit` when provided. Defaults to `0`. |
 | `ref_block_bytes` | string | yes | Reference block bytes as hex. Must decode to 2 bytes. |
@@ -587,7 +598,7 @@ Response `operation`: `tron_withdraw_expire_unfreeze`
 | `undelegate` | `amount` | `balance` |
 | `withdraw_expire_unfreeze` | `owner_address` | `owner_address` |
 
-### TRON Resource Non-goals In `v0.3.0`
+### TRON Resource Non-goals In `v0.4.0`
 
 - Legacy Stake 1.0 `FreezeBalanceContract` and `UnfreezeBalanceContract`
 - `CancelAllUnfreezeV2`

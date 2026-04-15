@@ -1,10 +1,13 @@
 package routes
 
+import "github.com/chain-signer/chain-signer/internal/keyid"
+
 const (
 	Version       = "v1/version"
 	Keys          = "v1/keys"
+	KeyStatusRoot = "v1/key-status"
 	KeyPath       = "v1/keys/{key_id}"
-	KeyPathStatus = "v1/keys/{key_id}/status"
+	KeyStatusPath = "v1/key-status/{key_id}"
 
 	EVMLegacyTransferSign          = "v1/evm/transfers/legacy/sign"
 	EVMEIP1559TransferSign         = "v1/evm/transfers/eip1559/sign"
@@ -21,10 +24,18 @@ const (
 	Recover = "v1/recover"
 )
 
-func Key(keyID string) string {
-	return Keys + "/" + keyID
+func Key(keyID string) (string, error) {
+	escaped, err := keyid.EscapePath(keyID)
+	if err != nil {
+		return "", err
+	}
+	return Keys + "/" + escaped, nil
 }
 
-func KeyStatus(keyID string) string {
-	return Key(keyID) + "/status"
+func KeyStatus(keyID string) (string, error) {
+	escaped, err := keyid.EscapePath(keyID)
+	if err != nil {
+		return "", err
+	}
+	return KeyStatusRoot + "/" + escaped, nil
 }

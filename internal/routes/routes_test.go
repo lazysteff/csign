@@ -8,6 +8,19 @@ import (
 )
 
 func TestKeyHelpers(t *testing.T) {
-	require.Equal(t, "v1/keys/key-1", routes.Key("key-1"))
-	require.Equal(t, "v1/keys/key-1/status", routes.KeyStatus("key-1"))
+	readPath, err := routes.Key("orgs/123/key-1")
+	require.NoError(t, err)
+	require.Equal(t, "v1/keys/orgs/123/key-1", readPath)
+
+	statusPath, err := routes.KeyStatus("orgs/123/key-1")
+	require.NoError(t, err)
+	require.Equal(t, "v1/key-status/orgs/123/key-1", statusPath)
+}
+
+func TestKeyHelpersRejectInvalidKeyIDs(t *testing.T) {
+	_, err := routes.Key("a//b")
+	require.ErrorContains(t, err, "key_id")
+
+	_, err = routes.KeyStatus("/key-1")
+	require.ErrorContains(t, err, "key_id")
 }

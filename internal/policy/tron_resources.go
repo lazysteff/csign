@@ -130,7 +130,7 @@ func validateTRONResource(resource string) (string, error) {
 func validateTRONUnfreezeResource(resource string) (string, error) {
 	normalized := v1.NormalizeTRONResource(resource)
 	if normalized == v1.TRONResourceTRONPower {
-		return "", faults.New(faults.Invalid, "TRON_POWER is not supported on unfreeze_v2 in v0.3.0")
+		return "", faults.New(faults.Invalid, "TRON_POWER is not supported on unfreeze_v2 in v0.4.0")
 	}
 	return validateTRONResource(normalized)
 }

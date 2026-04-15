@@ -41,6 +41,44 @@ func TestKeyServiceCreateAndSetActive(t *testing.T) {
 	require.False(t, updated.Active)
 }
 
+func TestKeyServiceRejectsInvalidKeyIDsBeforeRepositoryAccess(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("create", func(t *testing.T) {
+		repo := newMemoryKeyRepository()
+		service := NewKeyService(repo, time.Now)
+
+		_, err := service.Create(ctx, v1.CreateKeyRequest{
+			KeyID:            "a//b",
+			ChainFamily:      v1.ChainFamilyEVM,
+			CustodyMode:      v1.CustodyModeMVP,
+			ImportPrivateKey: "0x4c0883a69102937d6231471b5dbb6204fe512961708279f3c8dfe8d6b6f5f5ad",
+		})
+		require.Equal(t, faults.Invalid, faults.KindOf(err))
+		require.Zero(t, repo.getCalls)
+		require.Zero(t, repo.putCalls)
+	})
+
+	t.Run("read", func(t *testing.T) {
+		repo := newMemoryKeyRepository()
+		service := NewKeyService(repo, time.Now)
+
+		_, err := service.Read(ctx, "/bad")
+		require.Equal(t, faults.Invalid, faults.KindOf(err))
+		require.Zero(t, repo.getCalls)
+	})
+
+	t.Run("set active", func(t *testing.T) {
+		repo := newMemoryKeyRepository()
+		service := NewKeyService(repo, time.Now)
+
+		_, err := service.SetActive(ctx, "a/./b", false)
+		require.Equal(t, faults.Invalid, faults.KindOf(err))
+		require.Zero(t, repo.getCalls)
+		require.Zero(t, repo.putCalls)
+	})
+}
+
 func TestKeyServiceReadMissingKey(t *testing.T) {
 	service := NewKeyService(newMemoryKeyRepository(), time.Now)
 	_, err := service.Read(context.Background(), "missing")
@@ -48,7 +86,9 @@ func TestKeyServiceReadMissingKey(t *testing.T) {
 }
 
 type memoryKeyRepository struct {
-	keys map[string]domain.Key
+	keys     map[string]domain.Key
+	getCalls int
+	putCalls int
 }
 
 func newMemoryKeyRepository() *memoryKeyRepository {
@@ -56,6 +96,7 @@ func newMemoryKeyRepository() *memoryKeyRepository {
 }
 
 func (r *memoryKeyRepository) GetKey(_ context.Context, keyID string) (*domain.Key, error) {
+	r.getCalls++
 	key, ok := r.keys[keyID]
 	if !ok {
 		return nil, nil
@@ -65,6 +106,7 @@ func (r *memoryKeyRepository) GetKey(_ context.Context, keyID string) (*domain.K
 }
 
 func (r *memoryKeyRepository) PutKey(_ context.Context, key domain.Key) error {
+	r.putCalls++
 	r.keys[key.ID] = key
 	return nil
 }

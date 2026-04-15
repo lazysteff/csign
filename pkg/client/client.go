@@ -74,7 +74,11 @@ func (c *KeysClient) Create(ctx context.Context, req v1.CreateKeyRequest) (*v1.K
 }
 
 func (c *KeysClient) Read(ctx context.Context, keyID string) (*v1.KeyResponse, error) {
-	secret, err := c.client.logical.ReadWithContext(ctx, c.client.path(routes.Key(keyID)))
+	path, err := routes.Key(keyID)
+	if err != nil {
+		return nil, err
+	}
+	secret, err := c.client.logical.ReadWithContext(ctx, c.client.path(path))
 	if err != nil {
 		return nil, err
 	}
@@ -109,8 +113,12 @@ func (c *KeysClient) List(ctx context.Context) ([]string, error) {
 }
 
 func (c *KeysClient) SetActive(ctx context.Context, keyID string, active bool) (*v1.KeyResponse, error) {
+	path, err := routes.KeyStatus(keyID)
+	if err != nil {
+		return nil, err
+	}
 	var out v1.KeyResponse
-	if err := c.client.write(ctx, routes.KeyStatus(keyID), v1.UpdateKeyStatusRequest{Active: active}, &out); err != nil {
+	if err := c.client.write(ctx, path, v1.UpdateKeyStatusRequest{Active: active}, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil

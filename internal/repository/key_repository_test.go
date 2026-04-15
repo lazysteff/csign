@@ -30,6 +30,24 @@ func TestVaultKeyRepositoryPutGetList(t *testing.T) {
 	require.Equal(t, []string{"key-a", "key-b"}, ids)
 }
 
+func TestVaultKeyRepositoryListNestedKeyIDs(t *testing.T) {
+	ctx := context.Background()
+	storage := new(logical.InmemStorage)
+	repo := NewVaultKeyRepository(storage)
+
+	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "gateway/tron/main/hot"}))
+	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "gateway/ton/signing/default"}))
+	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "status/foo/bar"}))
+
+	ids, err := repo.ListKeyIDs(ctx)
+	require.NoError(t, err)
+	require.Equal(t, []string{
+		"gateway/ton/signing/default",
+		"gateway/tron/main/hot",
+		"status/foo/bar",
+	}, ids)
+}
+
 func TestVaultKeyRepositoryDecodeError(t *testing.T) {
 	ctx := context.Background()
 	storage := new(logical.InmemStorage)

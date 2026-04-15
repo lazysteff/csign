@@ -8,6 +8,7 @@ import (
 	"github.com/chain-signer/chain-signer/internal/custody"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/faults"
+	"github.com/chain-signer/chain-signer/internal/keyid"
 	"github.com/chain-signer/chain-signer/internal/policy"
 	"github.com/chain-signer/chain-signer/internal/routes"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -137,8 +138,8 @@ func (s *SigningService) Sign(ctx context.Context, route string, request any) (*
 	if err != nil {
 		return nil, err
 	}
-	if keyID == "" {
-		return nil, faults.New(faults.Invalid, "key_id is required")
+	if err := keyid.Validate(keyID); err != nil {
+		return nil, err
 	}
 	key, err := s.keys.GetKey(ctx, keyID)
 	if err != nil {

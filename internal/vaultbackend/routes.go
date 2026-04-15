@@ -50,29 +50,29 @@ func (b *Backend) routeRegistrations() []pathRegistration {
 			},
 		},
 		{
-			PublicRoute: routes.KeyPath,
+			PublicRoute: routes.KeyStatusPath,
 			Path: &framework.Path{
-				Pattern:             routes.Keys + `/` + framework.GenericNameRegex("key_id"),
-				Fields:              keyID,
-				TakesArbitraryInput: true,
-				Operations: map[logical.Operation]framework.OperationHandler{
-					logical.ReadOperation: &framework.PathOperation{
-						Callback: b.handleReadKey,
-						Summary:  "Read key metadata.",
-					},
-				},
-			},
-		},
-		{
-			PublicRoute: routes.KeyPathStatus,
-			Path: &framework.Path{
-				Pattern:             routes.Keys + `/` + framework.GenericNameRegex("key_id") + `/status`,
+				Pattern:             routes.KeyStatusRoot + `/` + framework.MatchAllRegex("key_id"),
 				Fields:              keyID,
 				TakesArbitraryInput: true,
 				Operations: map[logical.Operation]framework.OperationHandler{
 					logical.UpdateOperation: &framework.PathOperation{
 						Callback: b.handleUpdateKeyStatus,
 						Summary:  "Enable or disable a key.",
+					},
+				},
+			},
+		},
+		{
+			PublicRoute: routes.KeyPath,
+			Path: &framework.Path{
+				Pattern:             routes.Keys + `/` + framework.MatchAllRegex("key_id"),
+				Fields:              keyID,
+				TakesArbitraryInput: true,
+				Operations: map[logical.Operation]framework.OperationHandler{
+					logical.ReadOperation: &framework.PathOperation{
+						Callback: b.handleReadKey,
+						Summary:  "Read key metadata.",
 					},
 				},
 			},

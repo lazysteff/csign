@@ -48,7 +48,7 @@ This repository includes the external signer abstraction and conformance coverag
 - `v1/version`
 - `v1/keys`
 - `v1/keys/<key_id>`
-- `v1/keys/<key_id>/status`
+- `v1/key-status/<key_id>`
 - `v1/evm/transfers/legacy/sign`
 - `v1/evm/transfers/eip1559/sign`
 - `v1/evm/contracts/eip1559/sign`
@@ -61,6 +61,10 @@ This repository includes the external signer abstraction and conformance coverag
 - `v1/tron/resources/withdraw_expire_unfreeze/sign`
 - `v1/verify`
 - `v1/recover`
+
+Hierarchical slash-delimited `key_id` values are supported end-to-end. A valid `key_id` is one or more non-empty `/`-delimited segments such as `gateway/tron/hot/main` or `orgs/123/signing/default`.
+
+`GET v1/keys/<key_id>` is greedy over the remaining path, `POST v1/key-status/<key_id>` is the only supported status mutation route, and `LIST v1/keys` returns full hierarchical key IDs. Invalid forms such as leading slash, trailing slash, empty segments, `.` segments, and `..` segments are rejected. Clients must validate decoded values and escape path segments individually; percent-encoding must not be used to give `/` alternate semantics.
 
 ## Build
 

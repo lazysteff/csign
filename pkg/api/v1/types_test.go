@@ -21,6 +21,16 @@ func TestCreateKeyRequestOmitsEmptyOptionalFields(t *testing.T) {
 	require.NotContains(t, string(raw), "policy")
 }
 
+func TestCreateKeyRequestTracksExplicitKeyIDPresence(t *testing.T) {
+	var explicit CreateKeyRequest
+	require.NoError(t, json.Unmarshal([]byte(`{"key_id":"","chain_family":"evm"}`), &explicit))
+	require.True(t, explicit.HasKeyID())
+
+	var omitted CreateKeyRequest
+	require.NoError(t, json.Unmarshal([]byte(`{"chain_family":"evm"}`), &omitted))
+	require.False(t, omitted.HasKeyID())
+}
+
 func TestVerifyRequestOmitsOptionalFields(t *testing.T) {
 	raw, err := json.Marshal(VerifyRequest{
 		ChainFamily:   ChainFamilyEVM,

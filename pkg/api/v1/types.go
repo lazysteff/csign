@@ -66,11 +66,33 @@ type CreateKeyRequest struct {
 	ImportPrivateKey  string            `json:"import_private_key_hex,omitempty"`
 	PublicKeyHex      string            `json:"public_key_hex,omitempty"`
 	ExternalSignerRef string            `json:"external_signer_ref,omitempty"`
+	keyIDSet          bool
 }
 
 func (r CreateKeyRequest) MarshalJSON() ([]byte, error) {
 	type alias CreateKeyRequest
 	return marshalWithoutEmptyPolicy(alias(r), r.Policy)
+}
+
+func (r *CreateKeyRequest) UnmarshalJSON(data []byte) error {
+	type alias CreateKeyRequest
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	var decoded alias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	*r = CreateKeyRequest(decoded)
+	_, r.keyIDSet = raw["key_id"]
+	return nil
+}
+
+func (r CreateKeyRequest) HasKeyID() bool {
+	return r.keyIDSet
 }
 
 type UpdateKeyStatusRequest struct {

@@ -41,7 +41,7 @@ func TestSigningServiceOrchestratesValidationAndExecution(t *testing.T) {
 	require.NoError(t, err)
 
 	service := NewSigningService(
-		fakeKeyLookup{key: &domain.Key{ID: "key-1", CustodyMode: v1.CustodyModeMVP}},
+		&fakeKeyLookup{key: &domain.Key{ID: "key-1", CustodyMode: v1.CustodyModeMVP}},
 		policy.DefaultEvaluator{},
 		fakeCustodyResolver{fn: func(context.Context, domain.Key) (custody.Material, error) {
 			custodyUsed = true
@@ -78,7 +78,7 @@ func TestSigningServiceStopsOnPolicyDenial(t *testing.T) {
 	require.NoError(t, err)
 
 	service := NewSigningService(
-		fakeKeyLookup{key: &domain.Key{ID: "key-1"}},
+		&fakeKeyLookup{key: &domain.Key{ID: "key-1"}},
 		policy.DefaultEvaluator{},
 		fakeCustodyResolver{fn: func(context.Context, domain.Key) (custody.Material, error) {
 			custodyUsed = true
@@ -108,7 +108,7 @@ func TestSigningServiceWrapsCustodyFailures(t *testing.T) {
 	require.NoError(t, err)
 
 	service := NewSigningService(
-		fakeKeyLookup{key: &domain.Key{ID: "key-1"}},
+		&fakeKeyLookup{key: &domain.Key{ID: "key-1"}},
 		policy.DefaultEvaluator{},
 		fakeCustodyResolver{fn: func(context.Context, domain.Key) (custody.Material, error) {
 			return nil, errors.New("hsm offline")
@@ -122,12 +122,44 @@ func TestSigningServiceWrapsCustodyFailures(t *testing.T) {
 	require.Equal(t, faults.CustodyFailed, faults.KindOf(err))
 }
 
-type fakeKeyLookup struct {
-	key *domain.Key
-	err error
+func TestSigningServiceRejectsInvalidKeyIDsBeforeLookup(t *testing.T) {
+	registry, err := NewRegistry([]OperationDescriptor{
+		{
+			Route:      "test/route",
+			NewRequest: func() any { return &v1.EVMLegacyTransferSignRequest{} },
+			Validate:   func(domain.Key, any) error { return nil },
+			Execute: func(context.Context, custody.Material, any) (*v1.SignResponse, error) {
+				return &v1.SignResponse{}, nil
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	keys := &fakeKeyLookup{key: &domain.Key{ID: "key-1"}}
+	service := NewSigningService(
+		keys,
+		policy.DefaultEvaluator{},
+		fakeCustodyResolver{fn: func(context.Context, domain.Key) (custody.Material, error) {
+			return fakeMaterial{}, nil
+		}},
+		registry,
+	)
+
+	_, err = service.Sign(context.Background(), "test/route", &v1.EVMLegacyTransferSignRequest{
+		BaseSignRequest: v1.BaseSignRequest{KeyID: "a//b"},
+	})
+	require.Equal(t, faults.Invalid, faults.KindOf(err))
+	require.Zero(t, keys.calls)
 }
 
-func (f fakeKeyLookup) GetKey(_ context.Context, _ string) (*domain.Key, error) {
+type fakeKeyLookup struct {
+	key   *domain.Key
+	err   error
+	calls int
+}
+
+func (f *fakeKeyLookup) GetKey(_ context.Context, _ string) (*domain.Key, error) {
+	f.calls++
 	return f.key, f.err
 }
 

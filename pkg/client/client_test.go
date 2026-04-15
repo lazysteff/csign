@@ -50,6 +50,45 @@ func TestVersionFailsOnEmptyResponse(t *testing.T) {
 	require.ErrorContains(t, err, "vault returned an empty response")
 }
 
+func TestKeyHelpersUseCanonicalHierarchicalPaths(t *testing.T) {
+	logical := &fakeLogical{
+		readSecret: &api.Secret{
+			Data: map[string]interface{}{
+				"api_version": v1.APIVersion,
+				"key_id":      "orgs/123/main signer",
+			},
+		},
+		writeSecret: &api.Secret{
+			Data: map[string]interface{}{
+				"api_version": v1.APIVersion,
+				"key_id":      "orgs/123/main signer",
+			},
+		},
+	}
+
+	client := New(logical, "chain-signer")
+	_, err := client.Keys.Read(context.Background(), "orgs/123/main signer")
+	require.NoError(t, err)
+	require.Equal(t, "chain-signer/v1/keys/orgs/123/main%20signer", logical.lastReadPath)
+
+	_, err = client.Keys.SetActive(context.Background(), "orgs/123/main signer", false)
+	require.NoError(t, err)
+	require.Equal(t, "chain-signer/v1/key-status/orgs/123/main%20signer", logical.lastWritePath)
+}
+
+func TestKeyHelpersRejectInvalidKeyIDsBeforeTransport(t *testing.T) {
+	logical := &fakeLogical{}
+	client := New(logical, "chain-signer")
+
+	_, err := client.Keys.Read(context.Background(), "a//b")
+	require.ErrorContains(t, err, "key_id")
+	require.Empty(t, logical.lastReadPath)
+
+	_, err = client.Keys.SetActive(context.Background(), "/bad", true)
+	require.ErrorContains(t, err, "key_id")
+	require.Empty(t, logical.lastWritePath)
+}
+
 func TestSigningPropagatesTransportErrors(t *testing.T) {
 	client := New(&fakeLogical{writeErr: errors.New("boom")}, "chain-signer")
 	_, err := client.Signing.SignEVMLegacyTransfer(context.Background(), v1.EVMLegacyTransferSignRequest{})
@@ -98,10 +137,12 @@ type fakeLogical struct {
 	listSecret    *api.Secret
 	writeSecret   *api.Secret
 	writeErr      error
+	lastReadPath  string
 	lastWritePath string
 }
 
-func (f *fakeLogical) ReadWithContext(context.Context, string) (*api.Secret, error) {
+func (f *fakeLogical) ReadWithContext(_ context.Context, path string) (*api.Secret, error) {
+	f.lastReadPath = path
 	return f.readSecret, nil
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/chain-signer/chain-signer/internal/custody"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/faults"
+	"github.com/chain-signer/chain-signer/internal/keyid"
 	"github.com/chain-signer/chain-signer/internal/policy"
 	"github.com/chain-signer/chain-signer/internal/repository"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -34,7 +35,14 @@ func (s *KeyService) Create(ctx context.Context, req v1.CreateKeyRequest) (*doma
 	}
 
 	keyID := req.KeyID
-	if keyID == "" {
+	switch {
+	case keyID != "":
+		if err := keyid.Validate(keyID); err != nil {
+			return nil, err
+		}
+	case req.HasKeyID():
+		return nil, keyid.Validate(keyID)
+	default:
 		var err error
 		keyID, err = domain.GenerateKeyID()
 		if err != nil {
@@ -83,9 +91,13 @@ func (s *KeyService) Create(ctx context.Context, req v1.CreateKeyRequest) (*doma
 }
 
 func (s *KeyService) Read(ctx context.Context, keyID string) (*domain.Key, error) {
-	if keyID == "" {
-		return nil, faults.New(faults.Invalid, "key_id is required")
+	if err := keyid.Validate(keyID); err != nil {
+		return nil, err
 	}
+	return s.readValidated(ctx, keyID)
+}
+
+func (s *KeyService) readValidated(ctx context.Context, keyID string) (*domain.Key, error) {
 	key, err := s.repo.GetKey(ctx, keyID)
 	if err != nil {
 		return nil, err
@@ -101,7 +113,11 @@ func (s *KeyService) ListKeyIDs(ctx context.Context) ([]string, error) {
 }
 
 func (s *KeyService) SetActive(ctx context.Context, keyID string, active bool) (*domain.Key, error) {
-	key, err := s.Read(ctx, keyID)
+	if err := keyid.Validate(keyID); err != nil {
+		return nil, err
+	}
+
+	key, err := s.readValidated(ctx, keyID)
 	if err != nil {
 		return nil, err
 	}

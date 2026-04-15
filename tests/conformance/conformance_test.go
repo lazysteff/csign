@@ -397,6 +397,60 @@ func TestConformance_PKCS11StyleExternalSigner(t *testing.T) {
 	require.True(t, verifyResp.MatchesExpected)
 }
 
+func TestConformance_HierarchicalKeyIDRoundTripsAcrossManagementAndSigning(t *testing.T) {
+	ctx := context.Background()
+	b, storage := newTestBackend(t, nil)
+
+	keyID := "foo/status/bar"
+	createResp, _ := createKey(t, ctx, b, storage, v1.CreateKeyRequest{
+		KeyID:            keyID,
+		ChainFamily:      v1.ChainFamilyEVM,
+		CustodyMode:      v1.CustodyModeMVP,
+		ImportPrivateKey: testPrivHex,
+	})
+
+	readResp, _ := readKey(t, ctx, b, storage, keyID)
+	require.Equal(t, keyID, readResp.KeyID)
+	require.Equal(t, createResp.SignerAddress, readResp.SignerAddress)
+
+	listResp, err := handle(t, ctx, b, storage, logical.ListOperation, "v1/keys", nil)
+	require.NoError(t, err)
+	var listPayload struct {
+		Keys []string `json:"keys"`
+	}
+	raw, err := json.Marshal(listResp.Data)
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(raw, &listPayload))
+	require.Contains(t, listPayload.Keys, keyID)
+
+	_, err = handle(t, ctx, b, storage, logical.UpdateOperation, "v1/key-status/"+keyID, map[string]interface{}{
+		"active": false,
+	})
+	require.NoError(t, err)
+
+	_, err = handle(t, ctx, b, storage, logical.UpdateOperation, "v1/key-status/"+keyID, map[string]interface{}{
+		"active": true,
+	})
+	require.NoError(t, err)
+
+	signResp := signEVMLegacy(t, ctx, b, storage, v1.EVMLegacyTransferSignRequest{
+		BaseSignRequest: v1.BaseSignRequest{
+			KeyID:         keyID,
+			ChainFamily:   v1.ChainFamilyEVM,
+			Network:       testEVMNetwork,
+			RequestID:     testRequestID,
+			SourceAddress: createResp.SignerAddress,
+		},
+		ChainID:  testEVMChainID,
+		To:       testEVMRecipient,
+		Value:    "1",
+		Nonce:    1,
+		GasLimit: 21000,
+		GasPrice: "1000",
+	})
+	require.Equal(t, keyID, signResp.KeyID)
+}
+
 func TestConformance_NegativeCases(t *testing.T) {
 	ctx := context.Background()
 	b, storage := newTestBackend(t, nil)
@@ -450,7 +504,7 @@ func TestConformance_NegativeCases(t *testing.T) {
 	})
 
 	t.Run("disabled key", func(t *testing.T) {
-		_, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/keys/negatives/status", map[string]interface{}{
+		_, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/key-status/negatives", map[string]interface{}{
 			"active": false,
 		})
 		require.NoError(t, err)
@@ -477,6 +531,60 @@ func TestConformance_NegativeCases(t *testing.T) {
 		})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "key_id")
+	})
+
+	t.Run("invalid key ids are rejected consistently", func(t *testing.T) {
+		_, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/keys", map[string]interface{}{
+			"key_id":                 "",
+			"chain_family":           v1.ChainFamilyEVM,
+			"custody_mode":           v1.CustodyModeMVP,
+			"import_private_key_hex": testPrivHex,
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "key_id")
+
+		_, err = handle(t, ctx, b, storage, logical.UpdateOperation, "v1/keys", map[string]interface{}{
+			"key_id":                 "a//b",
+			"chain_family":           v1.ChainFamilyEVM,
+			"custody_mode":           v1.CustodyModeMVP,
+			"import_private_key_hex": testPrivHex,
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "key_id")
+
+		_, err = handle(t, ctx, b, storage, logical.ReadOperation, "v1/keys/a//b", nil)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "key_id")
+
+		_, err = handle(t, ctx, b, storage, logical.UpdateOperation, "v1/key-status/a/./b", map[string]interface{}{
+			"active": false,
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "key_id")
+
+		_, err = handle(t, ctx, b, storage, logical.UpdateOperation, "v1/evm/transfers/legacy/sign", map[string]interface{}{
+			"key_id":         "a/../b",
+			"chain_family":   v1.ChainFamilyEVM,
+			"network":        testEVMNetwork,
+			"request_id":     testRequestID,
+			"source_address": createResp.SignerAddress,
+			"chain_id":       testEVMChainID,
+			"to":             testEVMRecipient,
+			"value":          "1",
+			"nonce":          1,
+			"gas_limit":      21000,
+			"gas_price":      "1000",
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "key_id")
+	})
+
+	t.Run("removed legacy status route", func(t *testing.T) {
+		_, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/keys/negatives/status", map[string]interface{}{
+			"active": false,
+		})
+		require.Error(t, err)
+		require.True(t, errors.Is(err, logical.ErrUnsupportedPath) || errors.Is(err, logical.ErrUnsupportedOperation))
 	})
 
 	t.Run("unsupported operation", func(t *testing.T) {

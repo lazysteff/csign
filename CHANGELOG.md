@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.4.0 - 2026-04-15
+
+Add end-to-end hierarchical `key_id` support across key management.
+
+Highlights:
+
+- hierarchical slash-delimited `key_id` values now round-trip unchanged across create, read, list, status mutation, and signing
+- canonical status mutation route is now `/v1/key-status/{key_id}`
+- legacy `/v1/keys/{key_id}/status` route has been removed
+- key listing now recursively traverses stored key subtrees and returns full logical IDs
+- shared server/client `key_id` contract now enforces decoded-value validation and segment-wise path escaping
+- documentation and route discovery updated to advertise only canonical key-management routes
+
+Notes:
+
+- storage layout remains `keys/<key_id>` with no migration
+- signing and activation semantics remain unchanged
+- clients must escape `key_id` path segments individually and must not rely on percent-encoding to change `/` semantics
+
 ## v0.3.0 - 2026-04-13
 
 Add TRON Stake 2.0 treasury and resource signing support.
