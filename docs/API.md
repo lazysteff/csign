@@ -87,7 +87,7 @@ Example response body:
 {
   "data": {
     "api_version": "v1",
-    "build_version": "v0.4.0",
+    "build_version": "v0.4.1",
     "supported_routes": [
       "v1/evm/contracts/eip1559/sign",
       "v1/evm/transfers/eip1559/sign",
@@ -515,7 +515,7 @@ Request type: `TRONUnfreezeBalanceV2SignRequest`
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `owner_address` | string | yes | Owner Base58 address. |
-| `resource` | string | yes | `BANDWIDTH` or `ENERGY`. `TRON_POWER` is intentionally rejected in `v0.4.0`. |
+| `resource` | string | yes | `BANDWIDTH` or `ENERGY`. `TRON_POWER` is intentionally rejected. |
 | `amount` | int64 | yes | Amount mapped to `unfreeze_balance`. Must be greater than `0`. |
 | `fee_limit` | int64 | no | Copied into `raw_data.fee_limit` when provided. Defaults to `0`. |
 | `ref_block_bytes` | string | yes | Reference block bytes as hex. Must decode to 2 bytes. |
@@ -598,7 +598,7 @@ Response `operation`: `tron_withdraw_expire_unfreeze`
 | `undelegate` | `amount` | `balance` |
 | `withdraw_expire_unfreeze` | `owner_address` | `owner_address` |
 
-### TRON Resource Non-goals In `v0.4.0`
+### TRON Resource Non-goals
 
 - Legacy Stake 1.0 `FreezeBalanceContract` and `UnfreezeBalanceContract`
 - `CancelAllUnfreezeV2`

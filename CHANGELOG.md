@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.4.1 - 2026-05-01
+
+Maintenance release for the Go toolchain and dependency graph.
+
+Highlights:
+
+- refreshed Go module dependencies, including `github.com/hashicorp/vault/api` to `v1.23.0`
+- kept the module on Go `1.26.2`, matching the current release build toolchain
+- rebuilt release artifacts for `v0.4.1`
+
+Notes:
+
+- no API, route, storage, or signing behavior changes
+- `github.com/armon/go-metrics` remains pinned at `v0.4.1` because newer tags declare the renamed `github.com/hashicorp/go-metrics` module path
+
 ## v0.4.0 - 2026-04-15
 
 Add end-to-end hierarchical `key_id` support across key management.
