@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.4.2 - 2026-05-01
+
+Maintenance release for dependency refresh and repeatable module updates.
+
+Highlights:
+
+- refreshed retained transitive Go module dependencies with `go get -u -t all`
+- added module excludes for incompatible `github.com/armon/go-metrics` tags so `go get -u ./...` completes cleanly
+- rebuilt release artifacts for `v0.4.2`
+
+Notes:
+
+- no API, route, storage, or signing behavior changes
+- `github.com/armon/go-metrics` remains pinned at `v0.4.1` because newer tags declare the renamed `github.com/hashicorp/go-metrics` module path
+
 ## v0.4.1 - 2026-05-01
 
 Maintenance release for the Go toolchain and dependency graph.

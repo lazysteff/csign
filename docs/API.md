@@ -87,7 +87,7 @@ Example response body:
 {
   "data": {
     "api_version": "v1",
-    "build_version": "v0.4.1",
+    "build_version": "v0.4.2",
     "supported_routes": [
       "v1/evm/contracts/eip1559/sign",
       "v1/evm/transfers/eip1559/sign",
