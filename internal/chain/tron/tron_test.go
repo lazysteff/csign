@@ -175,6 +175,7 @@ func TestSignAndRecoverTRONOperations(t *testing.T) {
 	})
 	require.NoError(t, err)
 	requireRecoveredOperation(t, signer, withdrawResp.SignedPayload, v1.OperationTRONWithdrawExpireUnfreeze)
+
 }
 
 func TestTRONResourceBuildersProduceExpectedContracts(t *testing.T) {
@@ -248,6 +249,7 @@ func TestTRONResourceBuildersProduceExpectedContracts(t *testing.T) {
 	tx := decodeSignedTransaction(t, withdrawResp.SignedPayload)
 	require.Equal(t, int64(0), tx.RawData.FeeLimit)
 	require.Equal(t, core.Transaction_Contract_WithdrawExpireUnfreezeContract, tx.RawData.Contract[0].Type)
+
 }
 
 func TestTRONErrorsAndClassification(t *testing.T) {

@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.5.0 - 2026-06-07
+
+Add TRON governance vote signing and SR/voter reward-claim signing.
+
+Highlights:
+
+- added `v1/tron/governance/vote_witness/sign` for `VoteWitnessContract`
+- added `v1/tron/rewards/withdraw_balance/sign` for `WithdrawBalanceContract`
+- added typed Go API request structs, client helpers, route discovery, and recovery classification for the new TRON operations
+- documented vote replacement semantics, reward allowance behavior, signer/node validation boundaries, and forward-only rollout scope
+- refreshed Go dependencies with `go get -u -t ./...`
+- added golangci-lint configuration plus `make lint` and `make verify`
+
+Notes:
+
+- this is a forward-only feature release with no migration, alias route, or compatibility layer for previously signed requests
+- `withdraw_balance` is documented as SR/voter reward claiming and is distinct from Stake 2.0 expired-unfreeze withdrawal
+- csign validates deterministic request structure only; witness selection, allocation policy, reward scheduling, and live-chain checks remain orchestration/node responsibilities
+
 ## v0.4.2 - 2026-05-01
 
 Maintenance release for dependency refresh and repeatable module updates.

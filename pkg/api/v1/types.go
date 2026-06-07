@@ -21,6 +21,8 @@ const (
 	OperationTRONDelegateResource       = "tron_delegate_resource"
 	OperationTRONUndelegateResource     = "tron_undelegate_resource"
 	OperationTRONWithdrawExpireUnfreeze = "tron_withdraw_expire_unfreeze"
+	OperationTRONVoteWitness            = "tron_vote_witness"
+	OperationTRONWithdrawBalance        = "tron_withdraw_balance"
 )
 
 type Policy struct {

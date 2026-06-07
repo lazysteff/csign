@@ -289,6 +289,7 @@ func TestValidateTRONResourceRoutes(t *testing.T) {
 		},
 	}
 	require.NoError(t, ValidateTRONWithdrawExpireUnfreeze(key, withdrawReq))
+
 }
 
 func baseEVMKey(t *testing.T) domain.Key {

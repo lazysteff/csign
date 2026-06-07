@@ -32,6 +32,8 @@ Vault wraps plugin responses under the normal Vault top-level envelope. The plug
 - `POST v1/evm/transfers/legacy/sign`
 - `POST v1/evm/transfers/eip1559/sign`
 - `POST v1/evm/contracts/eip1559/sign`
+- `POST v1/tron/governance/vote_witness/sign`
+- `POST v1/tron/rewards/withdraw_balance/sign`
 - `POST v1/tron/transfers/trx/sign`
 - `POST v1/tron/transfers/trc20/sign`
 - `POST v1/tron/resources/freeze_v2/sign`
@@ -87,7 +89,7 @@ Example response body:
 {
   "data": {
     "api_version": "v1",
-    "build_version": "v0.4.2",
+    "build_version": "v0.5.0",
     "supported_routes": [
       "v1/evm/contracts/eip1559/sign",
       "v1/evm/transfers/eip1559/sign",
@@ -96,11 +98,13 @@ Example response body:
       "v1/keys",
       "v1/keys/{key_id}",
       "v1/recover",
+      "v1/tron/governance/vote_witness/sign",
       "v1/tron/resources/delegate/sign",
       "v1/tron/resources/freeze_v2/sign",
       "v1/tron/resources/undelegate/sign",
       "v1/tron/resources/unfreeze_v2/sign",
       "v1/tron/resources/withdraw_expire_unfreeze/sign",
+      "v1/tron/rewards/withdraw_balance/sign",
       "v1/tron/transfers/trc20/sign",
       "v1/tron/transfers/trx/sign",
       "v1/verify",
@@ -454,158 +458,21 @@ Response `operation`: `evm_contract_call_eip1559`
 
 ## TRON sign endpoints
 
-For all TRON routes, `csign` validates request shape, typed fields, policy caps, and protobuf signability only. It does not validate live chain state. The TRON node or the caller's orchestrator remains responsible for stateful checks such as delegable balance, receiver eligibility, unfreeze-entry limits, expired-unfreeze availability, and expiration freshness against current chain time.
+For TRON route schemas, protobuf mappings, live-chain validation boundaries, and governance/reward details, see [TRON_SIGNING.md](TRON_SIGNING.md).
 
-### `POST v1/tron/transfers/trx/sign`
+Supported TRON signing routes:
 
-Request type: `TRXTransferSignRequest`
+- `POST v1/tron/transfers/trx/sign`
+- `POST v1/tron/transfers/trc20/sign`
+- `POST v1/tron/resources/freeze_v2/sign`
+- `POST v1/tron/resources/unfreeze_v2/sign`
+- `POST v1/tron/resources/delegate/sign`
+- `POST v1/tron/resources/undelegate/sign`
+- `POST v1/tron/resources/withdraw_expire_unfreeze/sign`
+- `POST v1/tron/governance/vote_witness/sign`
+- `POST v1/tron/rewards/withdraw_balance/sign`
 
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `to` | string | yes | Recipient Base58 address. |
-| `amount` | int64 | yes | TRX amount. |
-| `fee_limit` | int64 | yes | TRON fee limit. |
-| `ref_block_bytes` | string | yes | Reference block bytes as hex. |
-| `ref_block_hash` | string | yes | Reference block hash bytes as hex. |
-| `ref_block_num` | int64 | no | Reference block number. |
-| `timestamp` | int64 | yes | Request timestamp in milliseconds. |
-| `expiration` | int64 | yes | Expiration timestamp in milliseconds. |
-
-Response `operation`: `tron_transfer_trx`
-
-### `POST v1/tron/transfers/trc20/sign`
-
-Request type: `TRC20TransferSignRequest`
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `to` | string | yes | Recipient Base58 address. |
-| `token_contract` | string | yes | TRC-20 contract Base58 address. |
-| `amount` | string | yes | Token amount. |
-| `fee_limit` | int64 | yes | TRON fee limit. |
-| `ref_block_bytes` | string | yes | Reference block bytes as hex. |
-| `ref_block_hash` | string | yes | Reference block hash bytes as hex. |
-| `ref_block_num` | int64 | no | Reference block number. |
-| `timestamp` | int64 | yes | Request timestamp in milliseconds. |
-| `expiration` | int64 | yes | Expiration timestamp in milliseconds. |
-
-Response `operation`: `tron_transfer_trc20`
-
-### `POST v1/tron/resources/freeze_v2/sign`
-
-Request type: `TRONFreezeBalanceV2SignRequest`
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `owner_address` | string | yes | Owner Base58 address. |
-| `resource` | string | yes | `BANDWIDTH` or `ENERGY`. |
-| `amount` | int64 | yes | Amount mapped to `frozen_balance`. Must be greater than `0`. |
-| `fee_limit` | int64 | no | Copied into `raw_data.fee_limit` when provided. Defaults to `0`. |
-| `ref_block_bytes` | string | yes | Reference block bytes as hex. Must decode to 2 bytes. |
-| `ref_block_hash` | string | yes | Reference block hash bytes as hex. Must decode to 8 bytes. |
-| `timestamp` | int64 | yes | Request timestamp in milliseconds. |
-| `expiration` | int64 | yes | Expiration timestamp in milliseconds. Must be greater than `timestamp`. |
-
-Response `operation`: `tron_freeze_balance_v2`
-
-### `POST v1/tron/resources/unfreeze_v2/sign`
-
-Request type: `TRONUnfreezeBalanceV2SignRequest`
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `owner_address` | string | yes | Owner Base58 address. |
-| `resource` | string | yes | `BANDWIDTH` or `ENERGY`. `TRON_POWER` is intentionally rejected. |
-| `amount` | int64 | yes | Amount mapped to `unfreeze_balance`. Must be greater than `0`. |
-| `fee_limit` | int64 | no | Copied into `raw_data.fee_limit` when provided. Defaults to `0`. |
-| `ref_block_bytes` | string | yes | Reference block bytes as hex. Must decode to 2 bytes. |
-| `ref_block_hash` | string | yes | Reference block hash bytes as hex. Must decode to 8 bytes. |
-| `timestamp` | int64 | yes | Request timestamp in milliseconds. |
-| `expiration` | int64 | yes | Expiration timestamp in milliseconds. Must be greater than `timestamp`. |
-
-Response `operation`: `tron_unfreeze_balance_v2`
-
-### `POST v1/tron/resources/delegate/sign`
-
-Request type: `TRONDelegateResourceSignRequest`
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `owner_address` | string | yes | Owner Base58 address. |
-| `receiver_address` | string | yes | Receiver Base58 address. |
-| `resource` | string | yes | `BANDWIDTH` or `ENERGY`. |
-| `amount` | int64 | yes | Amount mapped to `balance`. Must be greater than `0`. |
-| `lock` | bool | no | Delegation lock flag. Defaults to `false`. |
-| `lock_period` | int64 | no | Delegation lock period. Must be greater than `0` only when `lock=true`, otherwise it must be `0`. |
-| `fee_limit` | int64 | no | Copied into `raw_data.fee_limit` when provided. Defaults to `0`. |
-| `ref_block_bytes` | string | yes | Reference block bytes as hex. Must decode to 2 bytes. |
-| `ref_block_hash` | string | yes | Reference block hash bytes as hex. Must decode to 8 bytes. |
-| `timestamp` | int64 | yes | Request timestamp in milliseconds. |
-| `expiration` | int64 | yes | Expiration timestamp in milliseconds. Must be greater than `timestamp`. |
-
-Response `operation`: `tron_delegate_resource`
-
-### `POST v1/tron/resources/undelegate/sign`
-
-Request type: `TRONUndelegateResourceSignRequest`
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `owner_address` | string | yes | Owner Base58 address. |
-| `receiver_address` | string | yes | Receiver Base58 address. |
-| `resource` | string | yes | `BANDWIDTH` or `ENERGY`. |
-| `amount` | int64 | yes | Amount mapped to `balance`. Must be greater than `0`. |
-| `fee_limit` | int64 | no | Copied into `raw_data.fee_limit` when provided. Defaults to `0`. |
-| `ref_block_bytes` | string | yes | Reference block bytes as hex. Must decode to 2 bytes. |
-| `ref_block_hash` | string | yes | Reference block hash bytes as hex. Must decode to 8 bytes. |
-| `timestamp` | int64 | yes | Request timestamp in milliseconds. |
-| `expiration` | int64 | yes | Expiration timestamp in milliseconds. Must be greater than `timestamp`. |
-
-Response `operation`: `tron_undelegate_resource`
-
-### `POST v1/tron/resources/withdraw_expire_unfreeze/sign`
-
-Request type: `TRONWithdrawExpireUnfreezeSignRequest`
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `owner_address` | string | yes | Owner Base58 address. |
-| `fee_limit` | int64 | no | Copied into `raw_data.fee_limit` when provided. Defaults to `0`. |
-| `ref_block_bytes` | string | yes | Reference block bytes as hex. Must decode to 2 bytes. |
-| `ref_block_hash` | string | yes | Reference block hash bytes as hex. Must decode to 8 bytes. |
-| `timestamp` | int64 | yes | Request timestamp in milliseconds. |
-| `expiration` | int64 | yes | Expiration timestamp in milliseconds. Must be greater than `timestamp`. |
-
-Response `operation`: `tron_withdraw_expire_unfreeze`
-
-### TRON API To Protobuf Mapping
-
-| API route | Public field | Protobuf field |
-| --- | --- | --- |
-| `freeze_v2` | `owner_address` | `owner_address` |
-| `freeze_v2` | `amount` | `frozen_balance` |
-| `freeze_v2` | `resource` | `resource` |
-| `unfreeze_v2` | `owner_address` | `owner_address` |
-| `unfreeze_v2` | `amount` | `unfreeze_balance` |
-| `unfreeze_v2` | `resource` | `resource` |
-| `delegate` | `owner_address` | `owner_address` |
-| `delegate` | `receiver_address` | `receiver_address` |
-| `delegate` | `amount` | `balance` |
-| `delegate` | `lock` | `lock` |
-| `delegate` | `lock_period` | `lock_period` |
-| `undelegate` | `owner_address` | `owner_address` |
-| `undelegate` | `receiver_address` | `receiver_address` |
-| `undelegate` | `amount` | `balance` |
-| `withdraw_expire_unfreeze` | `owner_address` | `owner_address` |
-
-### TRON Resource Non-goals
-
-- Legacy Stake 1.0 `FreezeBalanceContract` and `UnfreezeBalanceContract`
-- `CancelAllUnfreezeV2`
-- signer-side expiration freshness windows
-- read/query helpers for delegable or withdrawable balances
-- automatic TRON state inspection before signing
-- `TRON_POWER` governance-style unfreeze
+`csign` validates deterministic request shape, owner authorization, configured policy caps where applicable, and protobuf signability only. It does not validate live chain state. Witness selection, vote allocation strategy, and reward-claim scheduling remain orchestration-layer responsibilities.
 
 ## Verify and recover
 
@@ -669,10 +536,11 @@ Current enforcement rules:
 
 - Sign requests fail if the key is disabled.
 - `source_address` must match the stored key address.
-- TRON resource requests use `owner_address`, which must match the stored key address.
+- TRON owner-based resource, governance, and reward requests use `owner_address`, which must match the stored key address.
 - EVM contract calls require non-empty `data`.
 - TRC-20 signing is limited to the `transfer(address,uint256)` selector.
-- TRON resource routes validate only structural fields and signability, not live chain state.
+- TRON owner-based routes validate only deterministic structural fields, owner authorization, and signability, not live chain state.
+- `VoteWitnessContract` signing enforces the protocol maximum of 30 submitted vote entries and rejects duplicate normalized witness addresses as a deterministic API constraint. It does not enforce witness allowlists or business vote caps.
 - Policy denials currently return HTTP `400` through Vault, not `403`.
 
 ## Error behavior
@@ -702,10 +570,10 @@ The Go client is organized by capability:
 | --- | --- |
 | `Client` | `Version` |
 | `Client.Keys` | `Create`, `Read`, `List`, `SetActive` |
-| `Client.Signing` | `SignEVMLegacyTransfer`, `SignEVMEIP1559Transfer`, `SignEVMContractCall`, `SignTRXTransfer`, `SignTRC20Transfer`, `SignTRONFreezeBalanceV2`, `SignTRONUnfreezeBalanceV2`, `SignTRONDelegateResource`, `SignTRONUndelegateResource`, `SignTRONWithdrawExpireUnfreeze` |
+| `Client.Signing` | `SignEVMLegacyTransfer`, `SignEVMEIP1559Transfer`, `SignEVMContractCall`, `SignTRXTransfer`, `SignTRC20Transfer`, `SignTRONFreezeBalanceV2`, `SignTRONUnfreezeBalanceV2`, `SignTRONDelegateResource`, `SignTRONUndelegateResource`, `SignTRONWithdrawExpireUnfreeze`, `SignTRONVoteWitness`, `SignTRONWithdrawBalance` |
 | `Client.Payloads` | `Verify`, `Recover` |
 
-The Go client also includes typed request builders for the new resource routes:
+The Go client also includes typed request builders for the owner-based TRON routes:
 
 - `NewTRONOwnerSignRequestBase`
 - `NewTRONFreezeBalanceV2Request`
@@ -713,6 +581,8 @@ The Go client also includes typed request builders for the new resource routes:
 - `NewTRONDelegateResourceRequest`
 - `NewTRONUndelegateResourceRequest`
 - `NewTRONWithdrawExpireUnfreezeRequest`
+- `NewTRONVoteWitnessRequest`
+- `NewTRONWithdrawBalanceRequest`
 
 Example:
 

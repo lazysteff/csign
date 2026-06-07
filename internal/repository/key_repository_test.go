@@ -22,7 +22,7 @@ func TestVaultKeyRepositoryPutGetList(t *testing.T) {
 	require.Equal(t, "key-a", key.ID)
 
 	missing, err := repo.GetKey(ctx, "missing")
-	require.NoError(t, err)
+	require.ErrorIs(t, err, ErrKeyNotFound)
 	require.Nil(t, missing)
 
 	ids, err := repo.ListKeyIDs(ctx)

@@ -52,7 +52,9 @@ func (s *KeyService) Create(ctx context.Context, req v1.CreateKeyRequest) (*doma
 
 	existing, err := s.repo.GetKey(ctx, keyID)
 	if err != nil {
-		return nil, err
+		if !isRepositoryKeyNotFound(err) {
+			return nil, err
+		}
 	}
 	if existing != nil {
 		return nil, faults.Newf(faults.Conflict, "key %q already exists", keyID)
@@ -100,6 +102,9 @@ func (s *KeyService) Read(ctx context.Context, keyID string) (*domain.Key, error
 func (s *KeyService) readValidated(ctx context.Context, keyID string) (*domain.Key, error) {
 	key, err := s.repo.GetKey(ctx, keyID)
 	if err != nil {
+		if isRepositoryKeyNotFound(err) {
+			return nil, faults.Newf(faults.NotFound, "key %q was not found", keyID)
+		}
 		return nil, err
 	}
 	if key == nil {

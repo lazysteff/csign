@@ -9,6 +9,7 @@ import (
 	"github.com/chain-signer/chain-signer/internal/chain/evm"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/faults"
+	"github.com/chain-signer/chain-signer/internal/repository"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
@@ -99,7 +100,7 @@ func (r *memoryKeyRepository) GetKey(_ context.Context, keyID string) (*domain.K
 	r.getCalls++
 	key, ok := r.keys[keyID]
 	if !ok {
-		return nil, nil
+		return nil, repository.ErrKeyNotFound
 	}
 	copy := key
 	return &copy, nil

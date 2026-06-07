@@ -22,7 +22,7 @@ func TestRegistryRejectsDuplicateRoutes(t *testing.T) {
 func TestDefaultOperationDescriptorsAreUnique(t *testing.T) {
 	registry, err := NewRegistry(DefaultOperationDescriptors())
 	require.NoError(t, err)
-	require.Len(t, registry.Routes(), 10)
+	require.Len(t, registry.Routes(), 12)
 
 	_, err = registry.Lookup("missing")
 	require.Equal(t, faults.Unsupported, faults.KindOf(err))

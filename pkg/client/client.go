@@ -164,6 +164,14 @@ func (c *SigningClient) SignTRONWithdrawExpireUnfreeze(ctx context.Context, req 
 	return c.sign(ctx, routes.TRONWithdrawExpireUnfreezeSign, req)
 }
 
+func (c *SigningClient) SignTRONVoteWitness(ctx context.Context, req v1.TRONVoteWitnessSignRequest) (*v1.SignResponse, error) {
+	return c.sign(ctx, routes.TRONVoteWitnessSign, req)
+}
+
+func (c *SigningClient) SignTRONWithdrawBalance(ctx context.Context, req v1.TRONWithdrawBalanceSignRequest) (*v1.SignResponse, error) {
+	return c.sign(ctx, routes.TRONWithdrawBalanceSign, req)
+}
+
 func (c *SigningClient) sign(ctx context.Context, path string, payload any) (*v1.SignResponse, error) {
 	var out v1.SignResponse
 	if err := c.client.write(ctx, path, payload, &out); err != nil {

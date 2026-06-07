@@ -1,6 +1,7 @@
 GO ?= go
+GOLANGCI_LINT ?= golangci-lint
 
-.PHONY: build test fmt tidy
+.PHONY: build test lint verify fmt tidy
 
 build:
 	mkdir -p dist
@@ -8,6 +9,11 @@ build:
 
 test:
 	$(GO) test ./...
+
+lint:
+	$(GOLANGCI_LINT) run
+
+verify: test lint
 
 fmt:
 	$(GO) fmt ./...

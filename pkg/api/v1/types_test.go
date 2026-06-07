@@ -83,3 +83,38 @@ func TestTRONResourceRequestOmitsUnsetFeeLimit(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, string(raw), "fee_limit")
 }
+
+func TestTRONVoteWitnessRequestRejectsUnsupportedFields(t *testing.T) {
+	var req TRONVoteWitnessSignRequest
+	err := json.Unmarshal([]byte(`{
+		"key_id":"tron-key",
+		"chain_family":"tron",
+		"network":"tron-nile",
+		"request_id":"req-1",
+		"owner_address":"TSvT6Bg3siokv3dbdtt9o4oM1CTXmymGn1",
+		"ref_block_bytes":"a1b2",
+		"ref_block_hash":"0102030405060708",
+		"timestamp":1710000000000,
+		"expiration":1710000060000,
+		"votes":[{"vote_address":"TN3W4H6rK2ce4vX9YnFQHwKENnHjoxb3m9","vote_count":1}],
+		"support":true
+	}`), &req)
+	require.ErrorContains(t, err, "support")
+}
+
+func TestTRONWithdrawBalanceRequestRejectsUnsupportedFields(t *testing.T) {
+	var req TRONWithdrawBalanceSignRequest
+	err := json.Unmarshal([]byte(`{
+		"key_id":"tron-key",
+		"chain_family":"tron",
+		"network":"tron-nile",
+		"request_id":"req-1",
+		"owner_address":"TSvT6Bg3siokv3dbdtt9o4oM1CTXmymGn1",
+		"ref_block_bytes":"a1b2",
+		"ref_block_hash":"0102030405060708",
+		"timestamp":1710000000000,
+		"expiration":1710000060000,
+		"amount":1
+	}`), &req)
+	require.ErrorContains(t, err, "amount")
+}

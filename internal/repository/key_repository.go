@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -11,6 +12,8 @@ import (
 )
 
 const keyPrefix = "keys/"
+
+var ErrKeyNotFound = errors.New("key not found")
 
 type KeyRepository interface {
 	GetKey(context.Context, string) (*domain.Key, error)
@@ -43,7 +46,7 @@ func (r *VaultKeyRepository) GetKey(ctx context.Context, keyID string) (*domain.
 		return nil, fmt.Errorf("read key %q: %w", keyID, err)
 	}
 	if entry == nil {
-		return nil, nil
+		return nil, ErrKeyNotFound
 	}
 	var key domain.Key
 	if err := entry.DecodeJSON(&key); err != nil {

@@ -1,6 +1,7 @@
 package vaultbackend
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -66,7 +67,7 @@ func TestDecodeResponseKeyResponseAndFieldString(t *testing.T) {
 
 func TestHandleVersionIncludesSupportedRoutes(t *testing.T) {
 	backend := New(nil)
-	resp, err := backend.handleVersion(nil, nil, nil)
+	resp, err := backend.handleVersion(context.Background(), nil, nil)
 	require.NoError(t, err)
 
 	var payload v1.VersionResponse
@@ -80,11 +81,13 @@ func TestHandleVersionIncludesSupportedRoutes(t *testing.T) {
 		"v1/keys",
 		"v1/keys/{key_id}",
 		"v1/recover",
+		"v1/tron/governance/vote_witness/sign",
 		"v1/tron/resources/delegate/sign",
 		"v1/tron/resources/freeze_v2/sign",
 		"v1/tron/resources/undelegate/sign",
 		"v1/tron/resources/unfreeze_v2/sign",
 		"v1/tron/resources/withdraw_expire_unfreeze/sign",
+		"v1/tron/rewards/withdraw_balance/sign",
 		"v1/tron/transfers/trc20/sign",
 		"v1/tron/transfers/trx/sign",
 		"v1/verify",

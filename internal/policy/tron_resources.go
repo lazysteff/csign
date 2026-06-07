@@ -20,7 +20,7 @@ func ValidateTRONFreezeBalanceV2(key domain.Key, req *v1.TRONFreezeBalanceV2Sign
 	if _, err := validateTRONResource(req.Resource); err != nil {
 		return err
 	}
-	if err := enforcePositiveAmount(req.Amount, "amount"); err != nil {
+	if err := enforcePositiveAmount(req.Amount); err != nil {
 		return err
 	}
 	return enforceBigCap(fmt.Sprintf("%d", req.Amount), key.Policy.MaxValue, "amount")
@@ -36,7 +36,7 @@ func ValidateTRONUnfreezeBalanceV2(key domain.Key, req *v1.TRONUnfreezeBalanceV2
 	if _, err := validateTRONUnfreezeResource(req.Resource); err != nil {
 		return err
 	}
-	if err := enforcePositiveAmount(req.Amount, "amount"); err != nil {
+	if err := enforcePositiveAmount(req.Amount); err != nil {
 		return err
 	}
 	return enforceBigCap(fmt.Sprintf("%d", req.Amount), key.Policy.MaxValue, "amount")
@@ -55,7 +55,7 @@ func ValidateTRONDelegateResource(key domain.Key, req *v1.TRONDelegateResourceSi
 	if _, err := validateTRONResource(req.Resource); err != nil {
 		return err
 	}
-	if err := enforcePositiveAmount(req.Amount, "amount"); err != nil {
+	if err := enforcePositiveAmount(req.Amount); err != nil {
 		return err
 	}
 	if req.Lock && req.LockPeriod <= 0 {
@@ -80,7 +80,7 @@ func ValidateTRONUndelegateResource(key domain.Key, req *v1.TRONUndelegateResour
 	if _, err := validateTRONResource(req.Resource); err != nil {
 		return err
 	}
-	if err := enforcePositiveAmount(req.Amount, "amount"); err != nil {
+	if err := enforcePositiveAmount(req.Amount); err != nil {
 		return err
 	}
 	return enforceBigCap(fmt.Sprintf("%d", req.Amount), key.Policy.MaxValue, "amount")
@@ -135,9 +135,9 @@ func validateTRONUnfreezeResource(resource string) (string, error) {
 	return validateTRONResource(normalized)
 }
 
-func enforcePositiveAmount(value int64, field string) error {
+func enforcePositiveAmount(value int64) error {
 	if value <= 0 {
-		return faults.Newf(faults.Invalid, "%s must be greater than 0", field)
+		return faults.New(faults.Invalid, "amount must be greater than 0")
 	}
 	return nil
 }

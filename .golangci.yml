@@ -1,0 +1,49 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - canonicalheader
+    - copyloopvar
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - gosec
+    - govet
+    - ineffassign
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - noctx
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - wastedassign
+    - dupl
+  disable:
+    - depguard
+    - exhaustruct
+    - gochecknoglobals
+    - gochecknoinits
+    - gomoddirectives
+    - wrapcheck
+    - cyclop
+    - funlen
+    - gocognit
+    - gocyclo
+    - ireturn
+    - lll
+    - mnd
+    - nestif
+    - nlreturn
+    - noinlineerr
+    - paralleltest
+    - tagliatelle
+    - testpackage
+    - varnamelen
+    - wsl_v5

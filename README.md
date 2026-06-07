@@ -23,6 +23,8 @@ It is designed for teams that want applications to request signatures through Va
 - TRON resource delegation
 - TRON resource undelegation
 - TRON withdraw expired unfreeze
+- TRON vote witness
+- TRON SR/voter reward claim
 
 All application-facing signing is typed. There is currently no generic raw signing endpoint.
 
@@ -59,6 +61,8 @@ This repository includes the external signer abstraction and conformance coverag
 - `v1/tron/resources/delegate/sign`
 - `v1/tron/resources/undelegate/sign`
 - `v1/tron/resources/withdraw_expire_unfreeze/sign`
+- `v1/tron/governance/vote_witness/sign`
+- `v1/tron/rewards/withdraw_balance/sign`
 - `v1/verify`
 - `v1/recover`
 
@@ -228,21 +232,29 @@ The TRON signing endpoints require the transaction envelope fields expected by T
 - `timestamp`
 - `expiration`
 
-`fee_limit` remains required on the existing TRX and TRC-20 routes. On the new Stake 2.0 resource routes it is optional and, when omitted, defaults to `0` in TRON `raw_data`.
+`fee_limit` remains required on the existing TRX and TRC-20 routes. On the owner-based Stake 2.0, governance, and reward routes it is optional and, when omitted, defaults to `0` in TRON `raw_data`.
 
 Use `v1/tron/transfers/trx/sign` for TRX transfers and `v1/tron/transfers/trc20/sign` for TRC-20 transfers.
 
-Use the new resource routes for treasury operations:
+Use the owner-based TRON routes for treasury, governance, and reward operations:
 
 - `v1/tron/resources/freeze_v2/sign`
 - `v1/tron/resources/unfreeze_v2/sign`
 - `v1/tron/resources/delegate/sign`
 - `v1/tron/resources/undelegate/sign`
 - `v1/tron/resources/withdraw_expire_unfreeze/sign`
+- `v1/tron/governance/vote_witness/sign`
+- `v1/tron/rewards/withdraw_balance/sign`
 
 The new resource routes intentionally use `owner_address` instead of `source_address`. This matches TRON stake and delegation contract semantics and is not a migration of the older transfer request schemas.
 
-`/v1/version` now returns `supported_routes`, a lexicographically sorted list of public callable mount-relative routes. Callers can use it to detect whether a mounted plugin supports the new TRON resource operations.
+`v1/tron/governance/vote_witness/sign` signs a complete `VoteWitnessContract` vote allocation. The submitted `votes` list replaces the owner's prior vote allocation; callers must not send deltas. `csign` rejects empty lists, more than 30 vote entries, non-positive `vote_count` values, invalid TRON addresses, and duplicate normalized witness addresses. It does not enforce witness allowlists, allocation strategy, available TRON Power, witness eligibility, or any live-chain cap.
+
+`v1/tron/rewards/withdraw_balance/sign` signs `WithdrawBalanceContract` for SR/voter reward claiming and allowance withdrawal. It is separate from `v1/tron/resources/withdraw_expire_unfreeze/sign`, which withdraws matured Stake 2.0 unstake entries after `UnfreezeBalanceV2Contract`.
+
+The new routes are forward-only. There is no migration, alias route, compatibility layer for older request shapes, or support for previously submitted signing requests. Recovery remains stateless and may classify any structurally valid signed TRON payload for a supported contract type, including payloads created outside `csign`.
+
+`/v1/version` now returns `supported_routes`, a lexicographically sorted list of public callable mount-relative routes. Callers can use it to detect whether a mounted plugin supports the new TRON resource, governance, and reward operations.
 
 ## Use from Go
 
@@ -306,6 +318,20 @@ make test
 
 This runs the Go tests in the repository, including the conformance suite in `tests/conformance`. The tests exercise the backend through Vault's logical test harness, so they do not require a live Vault server.
 
+Run linting:
+
+```bash
+make lint
+```
+
+Run the release verification checks:
+
+```bash
+make verify
+```
+
+This runs `make test` and `make lint`. The lint target uses `golangci-lint` and the repository's `.golangci.yml` configuration.
+
 ## Development
 
 Useful commands:
@@ -315,6 +341,8 @@ make fmt
 make tidy
 make build
 make test
+make lint
+make verify
 ```
 
 Key source directories:
@@ -337,6 +365,6 @@ If you want to help:
 - send a pull request for fixes, tests, docs, or new typed signing operations
 - keep changes scoped and well documented
 - add or update tests when behavior changes
-- run `make fmt`, `make test`, and `make build` before opening a PR
+- run `make fmt`, `make build`, and `make verify` before opening a PR
 
 Useful areas for contribution include additional typed transaction support, stronger policy controls, external signer integrations, deployment examples, and documentation improvements.

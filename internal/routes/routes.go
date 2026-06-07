@@ -19,6 +19,8 @@ const (
 	TRONDelegateResourceSign       = "v1/tron/resources/delegate/sign"
 	TRONUndelegateResourceSign     = "v1/tron/resources/undelegate/sign"
 	TRONWithdrawExpireUnfreezeSign = "v1/tron/resources/withdraw_expire_unfreeze/sign"
+	TRONVoteWitnessSign            = "v1/tron/governance/vote_witness/sign"
+	TRONWithdrawBalanceSign        = "v1/tron/rewards/withdraw_balance/sign"
 
 	Verify  = "v1/verify"
 	Recover = "v1/recover"

@@ -98,6 +98,8 @@ func DefaultOperationDescriptors() []OperationDescriptor {
 		newOperation(routes.TRONDelegateResourceSign, policy.ValidateTRONDelegateResource, tron.SignTRONDelegateResource),
 		newOperation(routes.TRONUndelegateResourceSign, policy.ValidateTRONUndelegateResource, tron.SignTRONUndelegateResource),
 		newOperation(routes.TRONWithdrawExpireUnfreezeSign, policy.ValidateTRONWithdrawExpireUnfreeze, tron.SignTRONWithdrawExpireUnfreeze),
+		newOperation(routes.TRONVoteWitnessSign, policy.ValidateTRONVoteWitness, tron.SignTRONVoteWitness),
+		newOperation(routes.TRONWithdrawBalanceSign, policy.ValidateTRONWithdrawBalance, tron.SignTRONWithdrawBalance),
 	}
 }
 
@@ -143,6 +145,9 @@ func (s *SigningService) Sign(ctx context.Context, route string, request any) (*
 	}
 	key, err := s.keys.GetKey(ctx, keyID)
 	if err != nil {
+		if isRepositoryKeyNotFound(err) {
+			return nil, faults.Newf(faults.NotFound, "key %q was not found", keyID)
+		}
 		return nil, err
 	}
 	if key == nil {

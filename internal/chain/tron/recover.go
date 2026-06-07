@@ -90,6 +90,10 @@ func classifyOperation(tx *core.Transaction) (string, error) {
 		return v1.OperationTRONUndelegateResource, nil
 	case core.Transaction_Contract_WithdrawExpireUnfreezeContract:
 		return v1.OperationTRONWithdrawExpireUnfreeze, nil
+	case core.Transaction_Contract_VoteWitnessContract:
+		return v1.OperationTRONVoteWitness, nil
+	case core.Transaction_Contract_WithdrawBalanceContract:
+		return v1.OperationTRONWithdrawBalance, nil
 	default:
 		return "", fmt.Errorf("unsupported tron contract type %v", contract.Type)
 	}
