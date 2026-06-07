@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+Highlights:
+
+- gated release artifact creation on `make verify`
+- added a tag-driven GitHub Actions release workflow that runs tests and golangci-lint before publishing release assets
+- added a guarded `make publish-release` path for future releases
+
 ## v0.5.0 - 2026-06-07
 
 Add TRON governance vote signing and SR/voter reward-claim signing.

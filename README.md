@@ -92,7 +92,19 @@ This produces `dist/chain-signer-plugin`.
 ./packaging/release.sh
 ```
 
-This creates `dist/<version>/chain-signer-plugin`, a SHA-256 checksum file, and `version.txt`.
+This first runs `make verify`. If tests or golangci-lint fail, no release artifact is created. When verification passes, it creates `dist/<version>/chain-signer-plugin`, a SHA-256 checksum file, and `version.txt`.
+
+### Publish a release
+
+```bash
+VERSION=v0.6.0 make publish-release
+```
+
+This is the supported release path. It requires a clean `main` worktree, verifies the changelog entry, runs the gated artifact build, creates and pushes the annotated tag, and lets the GitHub Actions release workflow publish the GitHub release. The workflow runs the same verification gate again before uploading release assets.
+
+The requested `VERSION` must match `internal/version/version.go`; mismatches are rejected before any tag or GitHub release is created.
+
+Do not create GitHub releases manually. Manual release creation bypasses the test and lint gate.
 
 ## Register and mount in Vault
 
@@ -343,6 +355,8 @@ make build
 make test
 make lint
 make verify
+make release
+make publish-release
 ```
 
 Key source directories:

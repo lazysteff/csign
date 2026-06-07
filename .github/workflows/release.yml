@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install golangci-lint
+        run: |
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Build verified release artifact
+        run: VERSION="${GITHUB_REF_NAME}" ./packaging/release.sh
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="$(./packaging/release_notes.sh "${GITHUB_REF_NAME}")"
+          gh release create "${GITHUB_REF_NAME}" \
+            "dist/${GITHUB_REF_NAME}/chain-signer-plugin" \
+            "dist/${GITHUB_REF_NAME}/chain-signer-plugin.sha256" \
+            "dist/${GITHUB_REF_NAME}/version.txt" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "$notes"
