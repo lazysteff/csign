@@ -2,11 +2,14 @@
 
 ## Unreleased
 
+## v0.5.1 - 2026-06-09
+
 Highlights:
 
 - gated release artifact creation on `make verify`
 - added a tag-driven GitHub Actions release workflow that runs tests and golangci-lint before publishing release assets
 - added a guarded `make publish-release` path for future releases
+- refreshed transitive Go module dependencies with `go get -u -t ./...`
 
 ## v0.5.0 - 2026-06-07
 
