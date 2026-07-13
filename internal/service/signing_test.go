@@ -31,7 +31,7 @@ func TestSigningServiceOrchestratesValidationAndExecution(t *testing.T) {
 				require.Equal(t, "key-1", typed.KeyID)
 				return nil
 			},
-			Execute: func(_ context.Context, _ custody.Material, request any) (*v1.SignResponse, error) {
+			Execute: func(_ context.Context, _ custody.Material, request any) (any, error) {
 				executed = true
 				typed := request.(*v1.EVMLegacyTransferSignRequest)
 				return &v1.SignResponse{KeyID: typed.KeyID}, nil
@@ -70,7 +70,7 @@ func TestSigningServiceStopsOnPolicyDenial(t *testing.T) {
 			Validate: func(domain.Key, any) error {
 				return faults.New(faults.PolicyDenied, "denied")
 			},
-			Execute: func(context.Context, custody.Material, any) (*v1.SignResponse, error) {
+			Execute: func(context.Context, custody.Material, any) (any, error) {
 				return &v1.SignResponse{}, nil
 			},
 		},
@@ -100,7 +100,7 @@ func TestSigningServiceWrapsCustodyFailures(t *testing.T) {
 			Route:      "test/route",
 			NewRequest: func() any { return &v1.EVMLegacyTransferSignRequest{} },
 			Validate:   func(domain.Key, any) error { return nil },
-			Execute: func(context.Context, custody.Material, any) (*v1.SignResponse, error) {
+			Execute: func(context.Context, custody.Material, any) (any, error) {
 				return &v1.SignResponse{}, nil
 			},
 		},
@@ -120,6 +120,19 @@ func TestSigningServiceWrapsCustodyFailures(t *testing.T) {
 		BaseSignRequest: v1.BaseSignRequest{KeyID: "key-1"},
 	})
 	require.Equal(t, faults.CustodyFailed, faults.KindOf(err))
+	require.EqualError(t, err, "custody backend unavailable")
+	require.NotContains(t, err.Error(), "hsm offline")
+}
+
+func TestAdvancedExecutionErrorsAreSanitizedAndClassified(t *testing.T) {
+	custodyError := classifyAdvancedExecutionError(errors.New("sign digest: secret HSM detail"))
+	require.Equal(t, faults.CustodyFailed, faults.KindOf(custodyError))
+	require.EqualError(t, custodyError, "custody signing failed")
+	require.NotContains(t, custodyError.Error(), "secret HSM detail")
+
+	verificationError := classifyAdvancedExecutionError(errors.New("recovered signer mismatch"))
+	require.Equal(t, faults.SignatureVerificationFailed, faults.CodeOf(verificationError))
+	require.EqualError(t, verificationError, "signed artifact verification failed")
 }
 
 func TestSigningServiceRejectsInvalidKeyIDsBeforeLookup(t *testing.T) {
@@ -128,7 +141,7 @@ func TestSigningServiceRejectsInvalidKeyIDsBeforeLookup(t *testing.T) {
 			Route:      "test/route",
 			NewRequest: func() any { return &v1.EVMLegacyTransferSignRequest{} },
 			Validate:   func(domain.Key, any) error { return nil },
-			Execute: func(context.Context, custody.Material, any) (*v1.SignResponse, error) {
+			Execute: func(context.Context, custody.Material, any) (any, error) {
 				return &v1.SignResponse{}, nil
 			},
 		},
@@ -149,6 +162,26 @@ func TestSigningServiceRejectsInvalidKeyIDsBeforeLookup(t *testing.T) {
 		BaseSignRequest: v1.BaseSignRequest{KeyID: "a//b"},
 	})
 	require.Equal(t, faults.Invalid, faults.KindOf(err))
+	require.Zero(t, keys.calls)
+}
+
+func TestSigningServiceRejectsTypedNilRequestBeforeLookup(t *testing.T) {
+	registry, err := NewRegistry([]OperationDescriptor{
+		{
+			Route:      "test/route",
+			NewRequest: func() any { return &v1.EVMLegacyTransferSignRequest{} },
+			Validate:   func(domain.Key, any) error { return nil },
+			Execute:    func(context.Context, custody.Material, any) (any, error) { return &v1.SignResponse{}, nil },
+		},
+	})
+	require.NoError(t, err)
+
+	keys := &fakeKeyLookup{}
+	service := NewSigningService(keys, policy.DefaultEvaluator{}, fakeCustodyResolver{}, registry)
+	var request *v1.EVMLegacyTransferSignRequest
+	_, err = service.Sign(context.Background(), "test/route", request)
+	require.Equal(t, faults.Internal, faults.KindOf(err))
+	require.ErrorContains(t, err, "request is required")
 	require.Zero(t, keys.calls)
 }
 

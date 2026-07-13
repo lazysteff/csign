@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"maps"
 	"strings"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 
 const (
 	DefaultGeneratedKeyIDPrefix = "key_"
-	PayloadEncodingHex          = "hex"
+	PayloadEncodingHex          = v1.PayloadEncodingHex
 	TRC20TransferSelector       = "a9059cbb"
 )
 
@@ -29,6 +30,14 @@ type Key struct {
 	ExternalSignerRef string            `json:"external_signer_ref,omitempty"`
 	CreatedAt         time.Time         `json:"created_at"`
 	UpdatedAt         time.Time         `json:"updated_at"`
+}
+
+// Clone isolates mutable request/repository collections at service boundaries.
+func (k Key) Clone() Key {
+	clone := k
+	clone.Labels = maps.Clone(k.Labels)
+	clone.Policy = k.Policy.Clone()
+	return clone
 }
 
 func NormalizeChainFamily(value string) string {

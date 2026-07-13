@@ -157,6 +157,14 @@ func signTransaction(ctx context.Context, material custody.Material, keyID, netw
 	if err != nil {
 		return nil, fmt.Errorf("attach evm signature: %w", err)
 	}
+	recovered, err := ethtypes.Sender(signer, signedTx)
+	if err != nil {
+		return nil, fmt.Errorf("verify evm signature: %w", err)
+	}
+	expectedSigner := DeriveAddress(material.PublicKey())
+	if !EqualAddress(recovered.Hex(), expectedSigner) {
+		return nil, fmt.Errorf("verify evm signature: recovered signer mismatch")
+	}
 	raw, err := signedTx.MarshalBinary()
 	if err != nil {
 		return nil, fmt.Errorf("marshal evm signed payload: %w", err)
@@ -167,7 +175,7 @@ func signTransaction(ctx context.Context, material custody.Material, keyID, netw
 		ChainFamily:     v1.ChainFamilyEVM,
 		Network:         network,
 		Operation:       operation,
-		SignerAddress:   DeriveAddress(material.PublicKey()),
+		SignerAddress:   recovered.Hex(),
 		TxHash:          signedTx.Hash().Hex(),
 		SignedPayload:   enc.EncodeHex(raw),
 		PayloadEncoding: domain.PayloadEncodingHex,
@@ -185,6 +193,8 @@ func classifyOperation(tx *ethtypes.Transaction) string {
 			return v1.OperationEVMTransferEIP1559
 		}
 		return v1.OperationEVMContractEIP1559
+	case ethtypes.SetCodeTxType:
+		return v1.OperationEVMEIP7702Transaction
 	}
 	return "unknown"
 }

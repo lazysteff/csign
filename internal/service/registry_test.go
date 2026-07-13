@@ -22,7 +22,7 @@ func TestRegistryRejectsDuplicateRoutes(t *testing.T) {
 func TestDefaultOperationDescriptorsAreUnique(t *testing.T) {
 	registry, err := NewRegistry(DefaultOperationDescriptors())
 	require.NoError(t, err)
-	require.Len(t, registry.Routes(), 12)
+	require.Len(t, registry.Routes(), 16)
 
 	_, err = registry.Lookup("missing")
 	require.Equal(t, faults.Unsupported, faults.KindOf(err))
@@ -33,7 +33,7 @@ func testDescriptor(route string) OperationDescriptor {
 		Route:      route,
 		NewRequest: func() any { return &v1.EVMLegacyTransferSignRequest{} },
 		Validate:   func(domain.Key, any) error { return nil },
-		Execute: func(context.Context, custody.Material, any) (*v1.SignResponse, error) {
+		Execute: func(context.Context, custody.Material, any) (any, error) {
 			return &v1.SignResponse{}, nil
 		},
 	}

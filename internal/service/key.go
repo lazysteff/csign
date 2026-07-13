@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"maps"
 	"time"
 
 	"github.com/chain-signer/chain-signer/internal/chain"
@@ -77,8 +78,8 @@ func (s *KeyService) Create(ctx context.Context, req v1.CreateKeyRequest) (*doma
 		ChainFamily:       chainFamily,
 		CustodyMode:       provisioned.CustodyMode,
 		Active:            true,
-		Labels:            req.Labels,
-		Policy:            req.Policy,
+		Labels:            maps.Clone(req.Labels),
+		Policy:            req.Policy.Clone(),
 		SignerAddress:     signerAddress,
 		PublicKeyHex:      provisioned.PublicKeyHex,
 		PrivateKeyHex:     provisioned.PrivateKeyHex,
@@ -86,10 +87,11 @@ func (s *KeyService) Create(ctx context.Context, req v1.CreateKeyRequest) (*doma
 		CreatedAt:         now,
 		UpdatedAt:         now,
 	}
-	if err := s.repo.PutKey(ctx, key); err != nil {
+	if err := s.repo.PutKey(ctx, key.Clone()); err != nil {
 		return nil, err
 	}
-	return &key, nil
+	clone := key.Clone()
+	return &clone, nil
 }
 
 func (s *KeyService) Read(ctx context.Context, keyID string) (*domain.Key, error) {
@@ -110,7 +112,8 @@ func (s *KeyService) readValidated(ctx context.Context, keyID string) (*domain.K
 	if key == nil {
 		return nil, faults.Newf(faults.NotFound, "key %q was not found", keyID)
 	}
-	return key, nil
+	clone := key.Clone()
+	return &clone, nil
 }
 
 func (s *KeyService) ListKeyIDs(ctx context.Context) ([]string, error) {
@@ -128,7 +131,27 @@ func (s *KeyService) SetActive(ctx context.Context, keyID string, active bool) (
 	}
 	key.Active = active
 	key.UpdatedAt = s.now().UTC()
-	if err := s.repo.PutKey(ctx, *key); err != nil {
+	if err := s.repo.PutKey(ctx, key.Clone()); err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
+func (s *KeyService) SetPolicy(ctx context.Context, keyID string, newPolicy v1.Policy) (*domain.Key, error) {
+	if err := keyid.Validate(keyID); err != nil {
+		return nil, err
+	}
+	key, err := s.readValidated(ctx, keyID)
+	if err != nil {
+		return nil, err
+	}
+	// The structured update protocol cannot set opaque legacy context. Preserve
+	// any context already stored on older keys while replacing enforced fields.
+	newPolicy = newPolicy.Clone()
+	newPolicy.AdditionalPolicyContext = maps.Clone(key.Policy.AdditionalPolicyContext)
+	key.Policy = newPolicy
+	key.UpdatedAt = s.now().UTC()
+	if err := s.repo.PutKey(ctx, key.Clone()); err != nil {
 		return nil, err
 	}
 	return key, nil

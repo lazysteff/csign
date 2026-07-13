@@ -1,8 +1,8 @@
 # chain-signer
 
-`chain-signer` is a HashiCorp Vault external plugin for typed transaction signing on EVM and TRON networks.
+`chain-signer` is a HashiCorp Vault external plugin for typed transaction and structured protocol signing on EVM and TRON networks.
 
-It is designed for teams that want applications to request signatures through Vault without exposing raw private keys or a generic `sign(hash)` / `sign(bytes)` endpoint. Instead of handing arbitrary payloads to a signer, callers submit structured transaction fields for a supported operation, and the plugin returns a signed transaction payload.
+It is designed for teams that want applications to request signatures through Vault without exposing raw private keys or a generic `sign(hash)` / `sign(bytes)` endpoint. Instead of handing arbitrary payloads to a signer, callers submit structured protocol fields for a supported operation, and the plugin returns a verified signature or signed transaction artifact.
 
 ## Why use chain-signer
 
@@ -16,6 +16,10 @@ It is designed for teams that want applications to request signatures through Va
 - EVM legacy native transfer
 - EVM EIP-1559 native transfer
 - EVM EIP-1559 contract call
+- constrained EIP-712 signing for the fixed ERC-2612 `Permit` schema `eip2612-permit-v1`
+- ERC-4337 v0.9 UserOperation signing for SimpleAccount `0.9`
+- EIP-7702 authorization signing with schema `eip7702-v1`
+- EIP-7702 type-4 transaction signing and recovery
 - TRON TRX transfer
 - TRON TRC-20 transfer through `transfer(address,uint256)`
 - TRON Stake 2.0 freeze balance v2
@@ -26,7 +30,7 @@ It is designed for teams that want applications to request signatures through Va
 - TRON vote witness
 - TRON SR/voter reward claim
 
-All application-facing signing is typed. There is currently no generic raw signing endpoint.
+All application-facing signing is typed. There is no generic raw-hash, arbitrary-byte, arbitrary EIP-712, or unsigned-transaction signing endpoint.
 
 ## How it works
 
@@ -34,7 +38,7 @@ All application-facing signing is typed. There is currently no generic raw signi
 2. Mount it at a path such as `chain-signer/`.
 3. Create a key bound to a chain family and an optional policy.
 4. Call a typed `/v1/.../sign` endpoint with structured transaction fields.
-5. Use `/v1/verify` or `/v1/recover` when you need signer recovery and payload validation.
+5. Use `/v1/verify` or `/v1/recover` for legacy transaction inspection, or the dedicated EIP-712, ERC-4337, and EIP-7702 inspection routes for structured verification and recovery.
 
 Detailed HTTP API reference: [docs/API.md](docs/API.md)
 
@@ -45,15 +49,26 @@ Detailed HTTP API reference: [docs/API.md](docs/API.md)
 
 This repository includes the external signer abstraction and conformance coverage for that flow. It does not ship a turnkey PKCS#11 runtime integration module.
 
+The advanced EVM operations use the same custody abstraction as existing routes. An external implementation must supply both the public key and a valid secp256k1 digest signature. CSign canonicalizes low-S signatures, determines recovery parity, checks that the custody public key matches the stored key, and verifies the produced artifact before returning it. The shipped plugin executable supports `mvp` directly; `pkcs11` remains an integration point that must be wired by the embedding deployment.
+
 ## Vault paths
 
 - `v1/version`
 - `v1/keys`
 - `v1/keys/<key_id>`
 - `v1/key-status/<key_id>`
+- `v1/key-policy/<key_id>`
 - `v1/evm/transfers/legacy/sign`
 - `v1/evm/transfers/eip1559/sign`
 - `v1/evm/contracts/eip1559/sign`
+- `v1/evm/eip712/sign`
+- `v1/evm/eip712/verify`
+- `v1/evm/erc4337/user-operations/sign`
+- `v1/evm/erc4337/user-operations/verify`
+- `v1/evm/eip7702/authorizations/sign`
+- `v1/evm/eip7702/authorizations/verify`
+- `v1/evm/eip7702/transactions/sign`
+- `v1/evm/eip7702/transactions/recover`
 - `v1/tron/transfers/trx/sign`
 - `v1/tron/transfers/trc20/sign`
 - `v1/tron/resources/freeze_v2/sign`
@@ -68,7 +83,7 @@ This repository includes the external signer abstraction and conformance coverag
 
 Hierarchical slash-delimited `key_id` values are supported end-to-end. A valid `key_id` is one or more non-empty `/`-delimited segments such as `gateway/tron/hot/main` or `orgs/123/signing/default`.
 
-`GET v1/keys/<key_id>` is greedy over the remaining path, `POST v1/key-status/<key_id>` is the only supported status mutation route, and `LIST v1/keys` returns full hierarchical key IDs. Invalid forms such as leading slash, trailing slash, empty segments, `.` segments, and `..` segments are rejected. Clients must validate decoded values and escape path segments individually; percent-encoding must not be used to give `/` alternate semantics.
+`GET v1/keys/<key_id>` is greedy over the remaining path, `POST v1/key-status/<key_id>` changes activation, `POST v1/key-policy/<key_id>` replaces the structured, enforced policy fields, and `LIST v1/keys` returns full hierarchical key IDs. Policy updates reject opaque `additional_policy_context`; any such deprecated context already stored on a legacy key is preserved server-side but cannot be created or changed through the update route. Invalid key forms such as leading slash, trailing slash, empty segments, `.` segments, and `..` segments are rejected. Clients must validate decoded values and escape path segments individually; percent-encoding must not be used to give `/` alternate semantics.
 
 ## Build
 
@@ -93,6 +108,8 @@ This produces `dist/chain-signer-plugin`.
 ```
 
 This first runs `make verify`. If tests or golangci-lint fail, no release artifact is created. When verification passes, it creates `dist/<version>/chain-signer-plugin`, a SHA-256 checksum file, and `version.txt`.
+
+`make verify` also performs a read-only network check that every direct Go module is pinned to the latest stable compatible release available at build time. Builds continue to use the exact versions in `go.mod` and `go.sum`; the check fails instead of silently changing the dependency graph.
 
 ### Publish a release
 
@@ -129,6 +146,30 @@ vault secrets enable \
 ```
 
 After mounting, the plugin is available under `chain-signer/v1/...`.
+
+Vault authorizes the plugin's POST routes as the `update` capability. Keep policy administration separate from application signing. For example, a signing application can receive only the routes it uses:
+
+```hcl
+path "chain-signer/v1/version" {
+  capabilities = ["read"]
+}
+
+path "chain-signer/v1/evm/eip712/sign" {
+  capabilities = ["update"]
+}
+
+path "chain-signer/v1/evm/eip712/verify" {
+  capabilities = ["update"]
+}
+```
+
+Grant policy replacement separately to an administrator:
+
+```hcl
+path "chain-signer/v1/key-policy/payments-evm" {
+  capabilities = ["update"]
+}
+```
 
 ## How to use it
 
@@ -235,6 +276,21 @@ JSON
 
 Use `recover` when you want the recovered signer, operation, and transaction hash back without enforcing an expectation.
 
+### Advanced EVM signing
+
+Advanced EVM signing is deliberately narrow, versioned, and default-deny:
+
+- EIP-712: schema `eip2612-permit-v1`, schema version `1`, fixed primary type `Permit`
+- ERC-4337: protocol `erc4337-v0.9`, account implementation `simple-account` version `0.9`, signing schema `simple-account-eip712-v1`, signature encoding `rsv-v27`
+- EIP-7702 authorization: schema `eip7702-v1`
+- EIP-7702 transaction: capability `eip7702-type-4`, type number `4`
+
+Read `v1/version` before signing to discover the exact compiled capabilities. A key must explicitly allow the operation, network, chain ID, and each operation-specific schema, implementation, EntryPoint, delegate, destination, or transaction type.
+
+Advanced requests reject unknown fields and use canonical decimal quantities plus lowercase `0x`-encoded protocol values. CSign reconstructs and verifies every artifact locally; it does not query chain state, allocate nonces, simulate account validation, or broadcast transactions.
+
+See the focused references for [protocol requests and responses](docs/api/evm.md), [policy and custody boundaries](docs/api/policy.md), and [wire conventions](docs/api/conventions.md).
+
 ### TRON requests
 
 The TRON signing endpoints require the transaction envelope fields expected by TRON signing, including:
@@ -266,12 +322,14 @@ The new resource routes intentionally use `owner_address` instead of `source_add
 
 The new routes are forward-only. There is no migration, alias route, compatibility layer for older request shapes, or support for previously submitted signing requests. Recovery remains stateless and may classify any structurally valid signed TRON payload for a supported contract type, including payloads created outside `csign`.
 
-`/v1/version` now returns `supported_routes`, a lexicographically sorted list of public callable mount-relative routes. Callers can use it to detect whether a mounted plugin supports the new TRON resource, governance, and reward operations.
+`/v1/version` returns `supported_routes`, a lexicographically sorted list of public callable mount-relative routes, plus typed, versioned advanced-EVM protocol capabilities. Callers can use it to detect whether a mounted plugin supports a route and the exact signing schema behind it.
 
 ## Use from Go
 
 The repository ships with a small Vault client package at `github.com/chain-signer/chain-signer/pkg/client`.
 The client is organized by capability through `Keys`, `Signing`, and `Payloads`.
+
+Advanced methods are `Keys.SetPolicy`, `Signing.SignEVMEIP712`, `Signing.SignEVMUserOperation`, `Signing.SignEVMEIP7702Authorization`, `Signing.SignEVMEIP7702Transaction`, `Payloads.VerifyEVMEIP712`, `Payloads.VerifyEVMUserOperation`, `Payloads.VerifyEVMEIP7702Authorization`, and `Payloads.RecoverEVMEIP7702Transaction`. `Keys.SetPolicy` accepts `v1.StructuredPolicy`, which contains only typed, enforced policy fields. `Client.Version` returns typed protocol capabilities used to select compatible schema and protocol identifiers. Classified advanced errors are exposed as `*client.APIError`; `client.ErrorCode(err)` returns a typed `v1.ErrorCode` for comparison with constants such as `v1.ErrorUnsupportedEIP712Schema`.
 
 ```go
 package main
@@ -342,7 +400,7 @@ Run the release verification checks:
 make verify
 ```
 
-This runs `make test` and `make lint`. The lint target uses `golangci-lint` and the repository's `.golangci.yml` configuration.
+This checks direct dependencies for newer compatible releases, then runs `make test` and `make lint`. The lint target uses `golangci-lint` and the repository's `.golangci.yml` configuration.
 
 ## Development
 
@@ -354,6 +412,7 @@ make tidy
 make build
 make test
 make lint
+make lint-backend
 make verify
 make release
 make publish-release

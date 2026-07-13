@@ -1,11 +1,6 @@
 package v1
 
-import (
-	"bytes"
-	"encoding/json"
-	"io"
-	"strings"
-)
+import "strings"
 
 const (
 	TRONResourceBandwidth = "BANDWIDTH"
@@ -130,17 +125,5 @@ func (r *TRONWithdrawExpireUnfreezeSignRequest) UnmarshalJSON(data []byte) error
 		return err
 	}
 	*r = TRONWithdrawExpireUnfreezeSignRequest(decoded)
-	return nil
-}
-
-func strictUnmarshalJSON(data []byte, out any) error {
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(out); err != nil {
-		return err
-	}
-	if err := decoder.Decode(new(struct{})); err != io.EOF {
-		return err
-	}
 	return nil
 }

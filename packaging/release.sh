@@ -25,11 +25,14 @@ fi
 OUT_DIR="${ROOT}/dist/${VERSION}"
 mkdir -p "${OUT_DIR}"
 "$GO" build -o "${OUT_DIR}/chain-signer-plugin" "${ROOT}/cmd/chain-signer-plugin"
-if command -v shasum >/dev/null 2>&1; then
-	shasum -a 256 "${OUT_DIR}/chain-signer-plugin" > "${OUT_DIR}/chain-signer-plugin.sha256"
-else
-	sha256sum "${OUT_DIR}/chain-signer-plugin" > "${OUT_DIR}/chain-signer-plugin.sha256"
-fi
+(
+	cd "${OUT_DIR}"
+	if command -v shasum >/dev/null 2>&1; then
+		shasum -a 256 chain-signer-plugin > chain-signer-plugin.sha256
+	else
+		sha256sum chain-signer-plugin > chain-signer-plugin.sha256
+	fi
+)
 cat > "${OUT_DIR}/version.txt" <<EOF
 version=${VERSION}
 api_version=v1

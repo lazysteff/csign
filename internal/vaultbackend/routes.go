@@ -27,7 +27,7 @@ func (b *Backend) routeRegistrations() []pathRegistration {
 				Operations: map[logical.Operation]framework.OperationHandler{
 					logical.ReadOperation: &framework.PathOperation{
 						Callback: b.handleVersion,
-						Summary:  "Read API and build version metadata.",
+						Summary:  "Read API version and structured protocol capabilities.",
 					},
 				},
 			},
@@ -59,6 +59,20 @@ func (b *Backend) routeRegistrations() []pathRegistration {
 					logical.UpdateOperation: &framework.PathOperation{
 						Callback: b.handleUpdateKeyStatus,
 						Summary:  "Enable or disable a key.",
+					},
+				},
+			},
+		},
+		{
+			PublicRoute: routes.KeyPolicyPath,
+			Path: &framework.Path{
+				Pattern:             routes.KeyPolicyRoot + `/` + framework.MatchAllRegex("key_id"),
+				Fields:              keyID,
+				TakesArbitraryInput: true,
+				Operations: map[logical.Operation]framework.OperationHandler{
+					logical.UpdateOperation: &framework.PathOperation{
+						Callback: b.handleUpdateKeyPolicy,
+						Summary:  "Replace the policy attached to a signing key.",
 					},
 				},
 			},
@@ -103,6 +117,22 @@ func (b *Backend) routeRegistrations() []pathRegistration {
 				},
 			},
 		},
+		{
+			PublicRoute: routes.EVMEIP712Verify,
+			Path:        inspectionPath(routes.EVMEIP712Verify, "Verify a constrained EIP-712 signature.", b.handleVerifyEVMEIP712),
+		},
+		{
+			PublicRoute: routes.EVMERC4337UserOperationVerify,
+			Path:        inspectionPath(routes.EVMERC4337UserOperationVerify, "Verify an ERC-4337 account signature.", b.handleVerifyEVMUserOperation),
+		},
+		{
+			PublicRoute: routes.EVMEIP7702AuthorizationVerify,
+			Path:        inspectionPath(routes.EVMEIP7702AuthorizationVerify, "Verify an EIP-7702 authorization tuple.", b.handleVerifyEVMEIP7702Authorization),
+		},
+		{
+			PublicRoute: routes.EVMEIP7702TransactionRecover,
+			Path:        inspectionPath(routes.EVMEIP7702TransactionRecover, "Recover and decode an EIP-7702 type-4 transaction.", b.handleRecoverEVMEIP7702Transaction),
+		},
 	}
 
 	for _, route := range b.registry.Routes() {
@@ -143,6 +173,19 @@ func (b *Backend) signPath(route string) *framework.Path {
 			logical.UpdateOperation: &framework.PathOperation{
 				Callback: b.handleSign(route),
 				Summary:  "Handle a typed signing request.",
+			},
+		},
+	}
+}
+
+func inspectionPath(route, summary string, callback framework.OperationFunc) *framework.Path {
+	return &framework.Path{
+		Pattern:             route,
+		TakesArbitraryInput: true,
+		Operations: map[logical.Operation]framework.OperationHandler{
+			logical.UpdateOperation: &framework.PathOperation{
+				Callback: callback,
+				Summary:  summary,
 			},
 		},
 	}

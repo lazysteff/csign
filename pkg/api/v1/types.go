@@ -25,40 +25,6 @@ const (
 	OperationTRONWithdrawBalance        = "tron_withdraw_balance"
 )
 
-type Policy struct {
-	AllowedNetworks         []string          `json:"allowed_networks,omitempty"`
-	AllowedChainIDs         []int64           `json:"allowed_chain_ids,omitempty"`
-	MaxValue                string            `json:"max_value,omitempty"`
-	MaxGasLimit             uint64            `json:"max_gas_limit,omitempty"`
-	MaxGasPrice             string            `json:"max_gas_price,omitempty"`
-	MaxFeePerGas            string            `json:"max_fee_per_gas,omitempty"`
-	MaxPriorityFeePerGas    string            `json:"max_priority_fee_per_gas,omitempty"`
-	MaxFeeLimit             int64             `json:"max_fee_limit,omitempty"`
-	AllowedTokenContracts   []string          `json:"allowed_token_contracts,omitempty"`
-	AllowedSelectors        []string          `json:"allowed_selectors,omitempty"`
-	AdditionalPolicyContext map[string]string `json:"additional_policy_context,omitempty"`
-}
-
-func (p Policy) IsZero() bool {
-	return len(p.AllowedNetworks) == 0 &&
-		len(p.AllowedChainIDs) == 0 &&
-		p.MaxValue == "" &&
-		p.MaxGasLimit == 0 &&
-		p.MaxGasPrice == "" &&
-		p.MaxFeePerGas == "" &&
-		p.MaxPriorityFeePerGas == "" &&
-		p.MaxFeeLimit == 0 &&
-		len(p.AllowedTokenContracts) == 0 &&
-		len(p.AllowedSelectors) == 0 &&
-		len(p.AdditionalPolicyContext) == 0
-}
-
-type VersionResponse struct {
-	APIVersion      string   `json:"api_version"`
-	BuildVersion    string   `json:"build_version"`
-	SupportedRoutes []string `json:"supported_routes,omitempty"`
-}
-
 type CreateKeyRequest struct {
 	KeyID             string            `json:"key_id,omitempty"`
 	ChainFamily       string            `json:"chain_family"`

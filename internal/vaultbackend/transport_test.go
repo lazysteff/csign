@@ -1,7 +1,6 @@
 package vaultbackend
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -30,7 +29,23 @@ func TestMapError(t *testing.T) {
 	assertCode(mapError(faults.New(faults.Unsupported, "unsupported")), 400)
 	assertCode(mapError(faults.New(faults.NotFound, "missing")), 404)
 	assertCode(mapError(faults.New(faults.Conflict, "duplicate")), 409)
-	assertCode(mapError(errors.New("boom")), 500)
+	internal := mapError(errors.New("secret Vault storage detail"))
+	assertCode(internal, 500)
+	require.EqualError(t, internal, "internal error")
+	require.NotContains(t, internal.Error(), "secret Vault storage detail")
+
+	coded := mapError(faults.NewCode(faults.Invalid, faults.InvalidUserOperation, "bad UserOperation"))
+	assertCode(coded, 400)
+	require.Contains(t, coded.Error(), "[invalid_user_operation] bad UserOperation")
+}
+
+func TestAdvancedDecodeErrorUsesStableRouteCode(t *testing.T) {
+	err := advancedDecodeError("v1/evm/erc4337/user-operations/sign", errors.New(`json: unknown field "raw_hash"`))
+	require.Equal(t, faults.Invalid, faults.KindOf(err))
+	require.Equal(t, faults.InvalidUserOperation, faults.CodeOf(err))
+
+	legacy := advancedDecodeError("v1/evm/transfers/legacy/sign", errors.New("bad legacy request"))
+	require.Empty(t, faults.CodeOf(legacy))
 }
 
 func TestDecodeResponseKeyResponseAndFieldString(t *testing.T) {
@@ -63,34 +78,4 @@ func TestDecodeResponseKeyResponseAndFieldString(t *testing.T) {
 	}}
 	require.Equal(t, "key-1", fieldString(fields, "key_id"))
 	require.Equal(t, "", fieldString(fields, "missing"))
-}
-
-func TestHandleVersionIncludesSupportedRoutes(t *testing.T) {
-	backend := New(nil)
-	resp, err := backend.handleVersion(context.Background(), nil, nil)
-	require.NoError(t, err)
-
-	var payload v1.VersionResponse
-	require.NoError(t, decode(resp.Data, &payload))
-	require.Equal(t, registeredPublicRoutes(backend.routes), payload.SupportedRoutes)
-	require.Equal(t, []string{
-		"v1/evm/contracts/eip1559/sign",
-		"v1/evm/transfers/eip1559/sign",
-		"v1/evm/transfers/legacy/sign",
-		"v1/key-status/{key_id}",
-		"v1/keys",
-		"v1/keys/{key_id}",
-		"v1/recover",
-		"v1/tron/governance/vote_witness/sign",
-		"v1/tron/resources/delegate/sign",
-		"v1/tron/resources/freeze_v2/sign",
-		"v1/tron/resources/undelegate/sign",
-		"v1/tron/resources/unfreeze_v2/sign",
-		"v1/tron/resources/withdraw_expire_unfreeze/sign",
-		"v1/tron/rewards/withdraw_balance/sign",
-		"v1/tron/transfers/trc20/sign",
-		"v1/tron/transfers/trx/sign",
-		"v1/verify",
-		"v1/version",
-	}, payload.SupportedRoutes)
 }

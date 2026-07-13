@@ -27,3 +27,12 @@ func TestNewAndNewf(t *testing.T) {
 func TestKindOfReturnsInternalForUntypedErrors(t *testing.T) {
 	require.Equal(t, Internal, KindOf(errors.New("boom")))
 }
+
+func TestCodedErrorsPreserveKindCodeAndWrapping(t *testing.T) {
+	err := NewCodef(Unsupported, UnsupportedEIP712Schema, "unsupported schema %q", "custom")
+	require.Equal(t, Unsupported, KindOf(err))
+	require.Equal(t, UnsupportedEIP712Schema, CodeOf(err))
+	require.EqualError(t, err, `unsupported schema "custom"`)
+	require.Same(t, err, Wrap(Invalid, err))
+	require.Empty(t, CodeOf(errors.New("legacy")))
+}

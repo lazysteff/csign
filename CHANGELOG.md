@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+## v0.6.0 - 2026-07-13
+
+Add constrained account-abstraction and EIP-7702 signing for EVM keys.
+
+Highlights:
+
+- added fixed-schema EIP-712 signing and verification for ERC-2612 `Permit` as `eip2612-permit-v1` version `1`
+- added ERC-4337 `erc4337-v0.9` UserOperation signing and verification for SimpleAccount `0.9` with `simple-account-eip712-v1` signatures
+- added EIP-7702 `eip7702-v1` authorization signing/verification and `eip7702-type-4` transaction signing/recovery
+- aligned authorization signing and type-4 authorization-list requests with the canonical `SetCodeAuthorization` fields (`chain_id`, `address`, `nonce`, `y_parity`, `r`, `s`); authorities are recovered from signatures, while explicit authority comparison remains on the verification route
+- reused go-ethereum's canonical EIP-712, EIP-7702 authorization, access-list, transaction, and recovery definitions; consolidated EVM signature formatting and strict scalar parsing instead of maintaining parallel protocol implementations
+- reorganized the advanced-EVM API, codecs, policy, Vault transport, client, conformance tests, and API manual into responsibility-focused modules with concise, non-repeating paths
+- added dedicated Vault routes and typed Go client methods for all four capabilities
+- extended `/v1/version` with typed schema, protocol, account, and transaction capability records
+- added `POST v1/key-policy/{key_id}` and `Client.Keys.SetPolicy` with a typed `StructuredPolicy` contract to replace a key's enforced policy fields
+- added default-deny policy controls for all advanced EVM signing operations, delegates, EntryPoints, account implementations, signing schemas, destinations, and authorization-list size
+- added strict request decoding plus canonical decimal-string, lowercase address, and lowercase `0x`-hex validation for the new routes
+- kept advanced requests protocol-only: opaque metadata, labels, approval references, and arbitrary workflow fields are rejected
+- deprecated legacy `additional_policy_context`; structured policy updates reject it and preserve any value already stored on older keys without allowing mutation
+- added stable advanced-operation error-code prefixes plus `client.APIError` and `client.ErrorCode` extraction while preserving legacy transport errors
+- added end-to-end advanced-operation conformance through both plugin-managed and external signer custody paths
+- verified every direct Go module against the latest stable compatible release and added a non-mutating dependency-freshness gate to `make verify`
+- pinned the release workflow to the latest stable `actions/checkout` and `actions/setup-go` releases available at build time
+- made published checksum files portable by recording the artifact basename instead of a CI workspace path
+- upgraded `go-ethereum` to `v1.17.4` for the pinned implementation
+
+Notes:
+
+- existing EVM, TRON, `/v1/verify`, and `/v1/recover` request and response contracts remain unchanged
+- advanced operations require explicit opt-in; an empty advanced allowlist never grants a new signing capability
+- structured policy replacement is not a merge, so callers must resubmit every legacy and advanced enforced field they intend to retain; deprecated stored `additional_policy_context` is preserved separately
+- only ERC-2612 `Permit`, ERC-4337 v0.9 SimpleAccount, EIP-7702 authorization schema `eip7702-v1`, and EIP-7702 transaction type 4 are registered
+- CSign does not expose raw signing, query chain state, allocate nonces, simulate UserOperations, fund Paymasters, or broadcast transactions
+- plugin-managed `mvp` custody works directly; external `pkcs11` signing still requires a deployment-provided resolver and is not a turnkey runtime integration
+- `github.com/armon/go-metrics` remains pinned to `v0.4.1`; later tags through `v0.6.0` declare the renamed `github.com/hashicorp/go-metrics` module path and are explicitly excluded as incompatible
+
 ## v0.5.1 - 2026-06-09
 
 Highlights:

@@ -86,6 +86,62 @@ func TestKeyServiceReadMissingKey(t *testing.T) {
 	require.Equal(t, faults.NotFound, faults.KindOf(err))
 }
 
+func TestKeyServiceSetPolicyPreservesLegacyAdditionalPolicyContext(t *testing.T) {
+	ctx := context.Background()
+	repo := newMemoryKeyRepository()
+	repo.keys["legacy-policy-key"] = domain.Key{
+		ID: "legacy-policy-key",
+		Policy: v1.Policy{
+			AllowedNetworks:         []string{"old-network"},
+			AdditionalPolicyContext: map[string]string{"workflow": "legacy"},
+		},
+	}
+	service := NewKeyService(repo, time.Now)
+
+	updated, err := service.SetPolicy(ctx, "legacy-policy-key", v1.Policy{
+		AllowedNetworks: []string{"new-network"},
+		MaxGasLimit:     21_000,
+	})
+	require.NoError(t, err)
+	require.Equal(t, []string{"new-network"}, updated.Policy.AllowedNetworks)
+	require.Equal(t, uint64(21_000), updated.Policy.MaxGasLimit)
+	require.Equal(t, map[string]string{"workflow": "legacy"}, updated.Policy.AdditionalPolicyContext)
+}
+
+func TestKeyServiceDoesNotAliasMutableRequestOrRepositoryState(t *testing.T) {
+	ctx := context.Background()
+	repo := newMemoryKeyRepository()
+	service := NewKeyService(repo, time.Now)
+	request := v1.CreateKeyRequest{
+		KeyID:            "isolated-key",
+		ChainFamily:      v1.ChainFamilyEVM,
+		CustodyMode:      v1.CustodyModeMVP,
+		ImportPrivateKey: "0x4c0883a69102937d6231471b5dbb6204fe512961708279f3c8dfe8d6b6f5f5ad",
+		Labels:           map[string]string{"owner": "original"},
+		Policy:           v1.Policy{AllowedNetworks: []string{"network-a"}},
+	}
+	created, err := service.Create(ctx, request)
+	require.NoError(t, err)
+
+	request.Labels["owner"] = "request-mutated"
+	request.Policy.AllowedNetworks[0] = "request-mutated"
+	created.Labels["owner"] = "response-mutated"
+	created.Policy.AllowedNetworks[0] = "response-mutated"
+	stored, err := service.Read(ctx, "isolated-key")
+	require.NoError(t, err)
+	require.Equal(t, "original", stored.Labels["owner"])
+	require.Equal(t, []string{"network-a"}, stored.Policy.AllowedNetworks)
+
+	newPolicy := v1.Policy{AllowedNetworks: []string{"network-b"}}
+	updated, err := service.SetPolicy(ctx, "isolated-key", newPolicy)
+	require.NoError(t, err)
+	newPolicy.AllowedNetworks[0] = "request-mutated"
+	updated.Policy.AllowedNetworks[0] = "response-mutated"
+	stored, err = service.Read(ctx, "isolated-key")
+	require.NoError(t, err)
+	require.Equal(t, []string{"network-b"}, stored.Policy.AllowedNetworks)
+}
+
 type memoryKeyRepository struct {
 	keys     map[string]domain.Key
 	getCalls int

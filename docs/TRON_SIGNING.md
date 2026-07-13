@@ -1,6 +1,6 @@
 # TRON Signing API
 
-This document describes the TRON signing routes exposed by `chain-signer`. For shared request/response conventions, key lifecycle, verify/recover behavior, policy fields, and client mapping, see [API.md](API.md).
+This document describes the TRON signing routes exposed by `chain-signer`. See the [API index](API.md) for the complete reference, including [shared conventions](api/conventions.md), [key lifecycle](api/keys.md), [verify/recover behavior](api/verification.md), [policy fields](api/policy.md), and [client mapping](api/errors-client.md#go-client-mapping).
 
 For all TRON routes, `csign` validates request shape, typed fields, configured policy caps where applicable, owner authorization, and protobuf signability only. It does not validate live chain state. The TRON node or the caller's orchestrator remains responsible for stateful checks such as account existence, witness existence and eligibility, available TRON Power, current rewards, reward-claim timing restrictions, guard representative restrictions, delegable balance, receiver eligibility, unfreeze-entry limits, expired-unfreeze availability, unstake maturity, and expiration freshness against current chain time.
 
