@@ -2,6 +2,7 @@ package evm
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -29,17 +30,18 @@ func TestEIP712WrapperSignsAndRecoversPermit(t *testing.T) {
 	require.Len(t, response.EIP712Digest, 66)
 
 	verified, err := VerifyEIP712(v1.EVMEIP712VerifyRequest{
-		EVMRequestContext:    request.EVMRequestContext,
-		EVMSignerExpectation: request.EVMSignerExpectation,
-		EIP712PermitPayload:  request.EIP712PermitPayload,
-		Signature:            response.Signature,
+		EVMRequestContext:       request.EVMRequestContext,
+		EVMSignerExpectation:    request.EVMSignerExpectation,
+		EIP712RegisteredPayload: request.EIP712RegisteredPayload,
+		Signature:               response.Signature,
 	})
 	require.NoError(t, err)
 	require.True(t, verified.SignatureValid)
 	require.Equal(t, advancedSigner, verified.RecoveredSigner)
 	require.Equal(t, response.EIP712Digest, verified.Digest)
 
-	tamperedMessage := request.Message
+	var tamperedMessage v1.EIP2612PermitMessage
+	require.NoError(t, json.Unmarshal(request.Message, &tamperedMessage))
 	tamperedMessage.Value = "11"
 	tampered, err := VerifyEIP712(v1.EVMEIP712VerifyRequest{
 		EVMRequestContext: v1.EVMRequestContext{
@@ -48,11 +50,11 @@ func TestEIP712WrapperSignsAndRecoversPermit(t *testing.T) {
 			RequestID:   "request-tampered",
 		},
 		EVMSignerExpectation: request.EVMSignerExpectation,
-		EIP712PermitPayload: v1.EIP712PermitPayload{
+		EIP712RegisteredPayload: v1.EIP712RegisteredPayload{
 			SchemaID:      request.SchemaID,
 			SchemaVersion: request.SchemaVersion,
 			Domain:        request.Domain,
-			Message:       tamperedMessage,
+			Message:       mustEIP712Message(tamperedMessage),
 		},
 		Signature: response.Signature,
 	})

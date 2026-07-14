@@ -55,7 +55,7 @@ func SignLegacyTransfer(ctx context.Context, material custody.Material, req *v1.
 		To:       &to,
 		Value:    value,
 	})
-	return signTransaction(ctx, material, req.KeyID, req.Network, v1.OperationEVMTransferLegacy, big.NewInt(req.ChainID), tx)
+	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationEVMTransferLegacy, big.NewInt(req.ChainID), tx)
 }
 
 func SignEIP1559Transfer(ctx context.Context, material custody.Material, req *v1.EVMEIP1559TransferSignRequest) (*v1.SignResponse, error) {
@@ -81,7 +81,7 @@ func SignEIP1559Transfer(ctx context.Context, material custody.Material, req *v1
 		To:        &to,
 		Value:     value,
 	})
-	return signTransaction(ctx, material, req.KeyID, req.Network, v1.OperationEVMTransferEIP1559, big.NewInt(req.ChainID), tx)
+	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationEVMTransferEIP1559, big.NewInt(req.ChainID), tx)
 }
 
 func SignContractCall(ctx context.Context, material custody.Material, req *v1.EVMContractCallSignRequest) (*v1.SignResponse, error) {
@@ -112,7 +112,7 @@ func SignContractCall(ctx context.Context, material custody.Material, req *v1.EV
 		Value:     value,
 		Data:      data,
 	})
-	return signTransaction(ctx, material, req.KeyID, req.Network, v1.OperationEVMContractEIP1559, big.NewInt(req.ChainID), tx)
+	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationEVMContractEIP1559, big.NewInt(req.ChainID), tx)
 }
 
 func Recover(req v1.VerifyRequest) (*v1.RecoverResponse, error) {
@@ -146,7 +146,7 @@ func Recover(req v1.VerifyRequest) (*v1.RecoverResponse, error) {
 	}, nil
 }
 
-func signTransaction(ctx context.Context, material custody.Material, keyID, network, operation string, chainID *big.Int, tx *ethtypes.Transaction) (*v1.SignResponse, error) {
+func signTransaction(ctx context.Context, material custody.Material, keyID, network, requestID, operation string, chainID *big.Int, tx *ethtypes.Transaction) (*v1.SignResponse, error) {
 	signer := ethtypes.LatestSignerForChainID(chainID)
 	digest := signer.Hash(tx)
 	signature, err := custody.RecoverableSignature(ctx, material, digest.Bytes())
@@ -171,6 +171,7 @@ func signTransaction(ctx context.Context, material custody.Material, keyID, netw
 	}
 	return &v1.SignResponse{
 		APIVersion:      v1.APIVersion,
+		RequestID:       requestID,
 		KeyID:           keyID,
 		ChainFamily:     v1.ChainFamilyEVM,
 		Network:         network,

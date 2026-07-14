@@ -1,12 +1,14 @@
 package advancedregistry
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 
 	"github.com/chain-signer/chain-signer/internal/chain/evm/eip712"
 	"github.com/chain-signer/chain-signer/internal/chain/evm/eip7702"
 	"github.com/chain-signer/chain-signer/internal/chain/evm/erc4337"
+	"github.com/chain-signer/chain-signer/internal/faults"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -16,7 +18,10 @@ type EIP712Schema struct {
 	Version           string
 	PrimaryType       string
 	SignatureEncoding string
-	HashPermit        func(eip712.Domain, eip712.PermitMessage) (eip712.Hashes, error)
+	DefinitionHash    string
+	HashMessage       func(eip712.Domain, json.RawMessage) (eip712.Hashes, error)
+	ValidateSigner    func(common.Address, json.RawMessage) error
+	ValidatePolicy    func(v1.Policy, json.RawMessage) error
 }
 
 type AccountAdapter struct {
@@ -42,12 +47,24 @@ func Default() *Registry {
 }
 
 func newDefault() Registry {
-	schema := EIP712Schema{
+	permitSchema := EIP712Schema{
 		ID:                eip712.SchemaID,
 		Version:           eip712.SchemaVersion,
 		PrimaryType:       eip712.PrimaryType,
 		SignatureEncoding: eip712.SignatureEncoding,
-		HashPermit:        eip712.HashPermit,
+		DefinitionHash:    eip712.PermitDefinitionHash(),
+		HashMessage:       eip712.HashPermitRaw,
+		ValidateSigner:    eip712.ValidatePermitSigner,
+	}
+	approvalSchema := EIP712Schema{
+		ID:                eip712.VerifyingPaymasterApprovalSchemaID,
+		Version:           eip712.VerifyingPaymasterApprovalSchemaVersion,
+		PrimaryType:       eip712.VerifyingPaymasterApprovalPrimaryType,
+		SignatureEncoding: eip712.VerifyingPaymasterApprovalSignatureFormat,
+		DefinitionHash:    eip712.VerifyingPaymasterApprovalDefinitionHash(),
+		HashMessage:       eip712.HashVerifyingPaymasterApprovalRaw,
+		ValidateSigner:    func(common.Address, json.RawMessage) error { return nil },
+		ValidatePolicy:    eip712.ValidateVerifyingPaymasterApprovalPolicy,
 	}
 	account := AccountAdapter{
 		ID:                erc4337.SimpleAccountImplementation,
@@ -59,11 +76,35 @@ func newDefault() Registry {
 			return operation.UserOperationHash(entryPoint, chainID, delegate)
 		},
 	}
+	schemas := make(map[string]EIP712Schema, 2)
+	mustRegisterEIP712Schema(schemas, permitSchema)
+	mustRegisterEIP712Schema(schemas, approvalSchema)
 	return Registry{
-		eip712Schemas:        map[string]EIP712Schema{schemaKey(schema.ID, schema.Version): schema},
+		eip712Schemas:        schemas,
 		accountAdapters:      map[string]AccountAdapter{accountKey(account.ProtocolVersion, account.ID, account.Version, account.SigningSchema): account},
 		authorizationSchemas: map[string]struct{}{eip7702.AuthorizationSchemaV1: {}},
 		transactionTypes:     map[string]uint8{v1.EIP7702TransactionTypeV1: eip7702.TransactionType},
+	}
+}
+
+func registerEIP712Schema(schemas map[string]EIP712Schema, schema EIP712Schema) error {
+	if schema.ID == "" || schema.Version == "" || schema.PrimaryType == "" || schema.SignatureEncoding == "" || schema.DefinitionHash == "" || schema.HashMessage == nil || schema.ValidateSigner == nil {
+		return faults.New(faults.Invalid, "registered EIP-712 schema is incomplete")
+	}
+	key := schemaKey(schema.ID, schema.Version)
+	if existing, ok := schemas[key]; ok {
+		if existing.DefinitionHash != schema.DefinitionHash || existing.PrimaryType != schema.PrimaryType || existing.SignatureEncoding != schema.SignatureEncoding {
+			return faults.Newf(faults.Conflict, "EIP-712 schema %q version %q is already registered with a different immutable definition", schema.ID, schema.Version)
+		}
+		return faults.Newf(faults.Conflict, "EIP-712 schema %q version %q is already registered", schema.ID, schema.Version)
+	}
+	schemas[key] = schema
+	return nil
+}
+
+func mustRegisterEIP712Schema(schemas map[string]EIP712Schema, schema EIP712Schema) {
+	if err := registerEIP712Schema(schemas, schema); err != nil {
+		panic(err)
 	}
 }
 

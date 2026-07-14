@@ -21,6 +21,7 @@ func SignTRONWithdrawBalance(ctx context.Context, material custody.Material, req
 		material,
 		req.KeyID,
 		req.Network,
+		req.RequestID,
 		v1.OperationTRONWithdrawBalance,
 		core.Transaction_Contract_WithdrawBalanceContract,
 		contract,

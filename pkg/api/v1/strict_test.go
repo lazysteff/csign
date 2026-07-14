@@ -52,7 +52,6 @@ func TestAdvancedRequestsRejectUnknownNestedFields(t *testing.T) {
 		field   string
 	}{
 		{name: "EIP-712 domain salt", payload: `{"domain":{"salt":"0x00"}}`, out: new(EVMEIP712SignRequest), field: "salt"},
-		{name: "EIP-712 message field", payload: `{"message":{"witness":"0x00"}}`, out: new(EVMEIP712VerifyRequest), field: "witness"},
 		{name: "UserOperation field", payload: `{"user_operation":{"signature":"0x"}}`, out: new(EVMUserOperationSignRequest), field: "signature"},
 		{name: "Paymaster field", payload: `{"user_operation":{"paymaster":{"context":"0x"}}}`, out: new(EVMUserOperationVerifyRequest), field: "context"},
 		{name: "repeated EIP-7702 data prefix", payload: `{"user_operation":{"eip7702":{"factory_data":"0x"}}}`, out: new(EVMUserOperationSignRequest), field: "factory_data"},
@@ -68,6 +67,12 @@ func TestAdvancedRequestsRejectUnknownNestedFields(t *testing.T) {
 			require.ErrorContains(t, err, `unknown field "`+test.field+`"`)
 		})
 	}
+}
+
+func TestRegisteredEIP712MessageStaysOpaqueForSchemaOwnedDecoding(t *testing.T) {
+	var request EVMEIP712VerifyRequest
+	require.NoError(t, json.Unmarshal([]byte(`{"message":{"witness":"0x00"}}`), &request))
+	require.JSONEq(t, `{"witness":"0x00"}`, string(request.Message))
 }
 
 func TestAdvancedRequestsRejectMalformedJSONTypes(t *testing.T) {

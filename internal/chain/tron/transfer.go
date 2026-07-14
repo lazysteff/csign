@@ -44,7 +44,7 @@ func SignTRXTransfer(ctx context.Context, material custody.Material, req *v1.TRX
 	if err != nil {
 		return nil, err
 	}
-	return signTransaction(ctx, material, req.KeyID, req.Network, v1.OperationTRXTransfer, tx)
+	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationTRXTransfer, tx)
 }
 
 func SignTRC20Transfer(ctx context.Context, material custody.Material, req *v1.TRC20TransferSignRequest) (*v1.SignResponse, error) {
@@ -95,5 +95,5 @@ func SignTRC20Transfer(ctx context.Context, material custody.Material, req *v1.T
 	if err != nil {
 		return nil, err
 	}
-	return signTransaction(ctx, material, req.KeyID, req.Network, v1.OperationTRC20Transfer, tx)
+	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationTRC20Transfer, tx)
 }

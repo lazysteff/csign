@@ -14,12 +14,12 @@ require (
 )
 
 require (
-	cloud.google.com/go/auth v0.21.0 // indirect
+	cloud.google.com/go/auth v0.22.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/cloudsqlconn v1.22.1 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260607022201-88e0521b82d3 // indirect
+	github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260713035539-e6945a76b084 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/bits-and-blooms/bitset v1.24.6 // indirect
@@ -103,7 +103,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pascaldekloe/goe v0.1.1 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
-	github.com/petermattis/goid v0.0.0-20260701081913-4f67fd55d3b4 // indirect
+	github.com/petermattis/goid v0.0.0-20260713124913-97594f28f5ca // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rjeczalik/notify v0.9.3 // indirect
@@ -135,8 +135,8 @@ require (
 	golang.org/x/time v0.15.0 // indirect
 	google.golang.org/api v0.288.0 // indirect
 	google.golang.org/genproto v0.0.0-20260526163538-3dc84a4a5aaa // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260706201446-f0a921348800 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260713224248-f5fc221cf8c4 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260713224248-f5fc221cf8c4 // indirect
 	google.golang.org/grpc v1.82.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	pgregory.net/rapid v1.3.0 // indirect

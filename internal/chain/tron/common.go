@@ -77,7 +77,7 @@ func buildTransaction(
 	}, nil
 }
 
-func signTransaction(ctx context.Context, material custody.Material, keyID, network, operation string, tx *core.Transaction) (*v1.SignResponse, error) {
+func signTransaction(ctx context.Context, material custody.Material, keyID, network, requestID, operation string, tx *core.Transaction) (*v1.SignResponse, error) {
 	rawData, err := proto.Marshal(tx.GetRawData())
 	if err != nil {
 		return nil, fmt.Errorf("marshal tron raw data: %w", err)
@@ -98,6 +98,7 @@ func signTransaction(ctx context.Context, material custody.Material, keyID, netw
 	}
 	return &v1.SignResponse{
 		APIVersion:      v1.APIVersion,
+		RequestID:       requestID,
 		KeyID:           keyID,
 		ChainFamily:     v1.ChainFamilyTRON,
 		Network:         network,

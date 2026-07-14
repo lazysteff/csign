@@ -45,7 +45,7 @@ func TestConformance_ExternalAdvancedEVMOperations(t *testing.T) {
 
 	permit := writeAdvanced[v1.EVMEIP712SignResponse](t, ctx, backend, storage, routes.EVMEIP712Sign, v1.EVMEIP712SignRequest{
 		EVMAdvancedSignRequestBase: fixture.base("external-permit"),
-		EIP712PermitPayload:        conformancePermit(signer, chainID),
+		EIP712RegisteredPayload:    conformancePermit(signer, chainID),
 	})
 	require.Equal(t, signer, permit.SignerAddress)
 

@@ -1,5 +1,7 @@
 package v1
 
+import "encoding/json"
+
 const (
 	EIP712SchemaEIP2612Permit        = "eip2612-permit-v1"
 	EIP712SchemaEIP2612PermitVersion = "1"
@@ -21,16 +23,23 @@ type EIP2612PermitMessage struct {
 	Deadline string `json:"deadline"`
 }
 
-type EIP712PermitPayload struct {
-	SchemaID      string               `json:"schema_id"`
-	SchemaVersion string               `json:"schema_version"`
-	Domain        EIP712Domain         `json:"domain"`
-	Message       EIP2612PermitMessage `json:"message"`
+// EIP712RegisteredPayload is a schema-selected envelope. Message remains raw
+// until the immutable registered schema decodes it into its own fixed type;
+// the reusable API does not accumulate a union of application-specific fields.
+type EIP712RegisteredPayload struct {
+	SchemaID      string          `json:"schema_id"`
+	SchemaVersion string          `json:"schema_version"`
+	Domain        EIP712Domain    `json:"domain"`
+	Message       json.RawMessage `json:"message"`
 }
+
+// EIP712PermitPayload is retained as a source-compatible name for callers of
+// the original permit-only API. New code should use EIP712RegisteredPayload.
+type EIP712PermitPayload = EIP712RegisteredPayload
 
 type EVMEIP712SignRequest struct {
 	EVMAdvancedSignRequestBase
-	EIP712PermitPayload
+	EIP712RegisteredPayload
 }
 
 func (r *EVMEIP712SignRequest) UnmarshalJSON(data []byte) error {
@@ -60,7 +69,7 @@ type EVMEIP712SignResponse struct {
 type EVMEIP712VerifyRequest struct {
 	EVMRequestContext
 	EVMSignerExpectation
-	EIP712PermitPayload
+	EIP712RegisteredPayload
 	Signature string `json:"signature"`
 }
 

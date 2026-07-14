@@ -2,6 +2,7 @@ package evm
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/chain-signer/chain-signer/internal/custody"
@@ -31,7 +32,7 @@ func advancedPermitRequest() v1.EVMEIP712SignRequest {
 				ChainID:               "1",
 			},
 		},
-		EIP712PermitPayload: v1.EIP712PermitPayload{
+		EIP712RegisteredPayload: v1.EIP712RegisteredPayload{
 			SchemaID:      v1.EIP712SchemaEIP2612Permit,
 			SchemaVersion: v1.EIP712SchemaEIP2612PermitVersion,
 			Domain: v1.EIP712Domain{
@@ -40,15 +41,23 @@ func advancedPermitRequest() v1.EVMEIP712SignRequest {
 				ChainID:           "1",
 				VerifyingContract: "0x1111111111111111111111111111111111111111",
 			},
-			Message: v1.EIP2612PermitMessage{
+			Message: mustEIP712Message(v1.EIP2612PermitMessage{
 				Owner:    advancedSigner,
 				Spender:  "0x2222222222222222222222222222222222222222",
 				Value:    "10",
 				Nonce:    "0",
 				Deadline: "100",
-			},
+			}),
 		},
 	}
+}
+
+func mustEIP712Message(value any) json.RawMessage {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		panic(err)
+	}
+	return raw
 }
 
 func advancedUserOperationRequest() v1.EVMUserOperationSignRequest {

@@ -1,6 +1,7 @@
 package eip712
 
 import (
+	"encoding/json"
 	"math/big"
 	"testing"
 
@@ -70,4 +71,14 @@ func TestHashPermitMatchesERC2612AndGeth(t *testing.T) {
 	require.Equal(t, "0x8baf3ca6cb3e1553c0ab80e7cd3cc8237b8afb8cdf27a0e06c866517cea0b62c", hashes.DomainSeparator.Hex())
 	require.Equal(t, "0xaa8e22808e48689838321c46fefee7ae880463e7354fd7ea101b79a5533724f4", hashes.StructHash.Hex())
 	require.Equal(t, "0x83f78a1913150a156c62c6bde8a2aaeff986408f673034df02ee4b7587cda01f", hashes.Digest.Hex())
+}
+
+func TestRegisteredPermitMessageRejectsUnknownFields(t *testing.T) {
+	raw, err := json.Marshal(map[string]any{
+		"owner": testMessage.Owner, "spender": testMessage.Spender, "value": testMessage.Value,
+		"nonce": testMessage.Nonce, "deadline": testMessage.Deadline, "witness": "0x00",
+	})
+	require.NoError(t, err)
+	_, err = HashPermitRaw(testDomain, raw)
+	require.ErrorContains(t, err, `unknown field "witness"`)
 }

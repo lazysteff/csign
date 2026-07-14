@@ -16,7 +16,7 @@ func TestConformance_AdvancedEVMPolicyOptIn(t *testing.T) {
 
 	permitRequest := v1.EVMEIP712SignRequest{
 		EVMAdvancedSignRequestBase: fixture.base("advanced-permit-denied"),
-		EIP712PermitPayload:        conformancePermit(fixture.signer, fixture.chainID),
+		EIP712RegisteredPayload:    conformancePermit(fixture.signer, fixture.chainID),
 	}
 	_, err := handle(t, fixture.ctx, fixture.backend, fixture.storage, logical.UpdateOperation, routes.EVMEIP712Sign, mustMap(t, permitRequest))
 	require.Error(t, err)

@@ -115,7 +115,11 @@ func ValidateEVMContractCall(key domain.Key, req *v1.EVMContractCallSignRequest)
 	if err != nil {
 		return faults.Wrap(faults.Invalid, err)
 	}
-	if err := enforceTokenContractAllowlist(key.Policy, v1.ChainFamilyEVM, req.To); err != nil {
+	if len(key.Policy.AllowedContractDestinations) > 0 {
+		if err := requireAddressAllowed(key.Policy.AllowedContractDestinations, req.To, "transaction destination"); err != nil {
+			return err
+		}
+	} else if err := enforceTokenContractAllowlist(key.Policy, v1.ChainFamilyEVM, req.To); err != nil {
 		return err
 	}
 	if err := enforceSelectorAllowlist(key.Policy, selector); err != nil {

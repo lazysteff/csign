@@ -1,0 +1,23 @@
+{
+  "schema_id": "verifying-paymaster-approval-v1",
+  "schema_version": "1",
+  "domain": {
+    "name": "VerifyingPaymaster",
+    "version": "1",
+    "chain_id": "421614",
+    "verifying_contract": "0x1111111111111111111111111111111111111111"
+  },
+  "message": {
+    "chain_id": "421614",
+    "entry_point": "0x433709009b8330fda32311df1c2afa402ed8d009",
+    "paymaster": "0x1111111111111111111111111111111111111111",
+    "user_op_hash": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valid_after": "1700000000",
+    "valid_until": "1700000600",
+    "max_sponsored_cost": "123456789000000",
+    "approval_nonce": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "context_hash": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "sponsorship_payload": "0x0100006553f10000006553f35800000000000000000000000000000000000000000000000000007048860daf40bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "eip712_digest": "0xb9122bac5f02ed64ff2e468ea6edf9da2d9c83264c087caf9b4ec66473b9e39a"
+}

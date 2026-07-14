@@ -13,7 +13,7 @@ func TestDefaultRegistryBindsVersionedBehaviorAndCapabilities(t *testing.T) {
 	registry := Default()
 	schema, err := registry.EIP712Schema(eip712.SchemaID, eip712.SchemaVersion)
 	require.NoError(t, err)
-	require.NotNil(t, schema.HashPermit)
+	require.NotNil(t, schema.HashMessage)
 	require.Equal(t, v1.SignatureEncodingRSV27, schema.SignatureEncoding)
 
 	account, err := registry.AccountAdapter(
@@ -28,12 +28,26 @@ func TestDefaultRegistryBindsVersionedBehaviorAndCapabilities(t *testing.T) {
 	schemas, protocols, accounts, signingSchemas, authorizationSchemas, transactionTypes := registry.Capabilities()
 	require.Equal(t, []v1.EIP712SchemaCapability{{
 		ID: eip712.SchemaID, Version: eip712.SchemaVersion, PrimaryType: eip712.PrimaryType, SignatureEncoding: eip712.SignatureEncoding,
+	}, {
+		ID: eip712.VerifyingPaymasterApprovalSchemaID, Version: eip712.VerifyingPaymasterApprovalSchemaVersion, PrimaryType: eip712.VerifyingPaymasterApprovalPrimaryType, SignatureEncoding: eip712.VerifyingPaymasterApprovalSignatureFormat,
 	}}, schemas)
 	require.Equal(t, []string{erc4337.ProtocolID}, protocols)
 	require.Len(t, accounts, 1)
 	require.Equal(t, []string{erc4337.SimpleAccountSigningSchema}, signingSchemas)
 	require.Equal(t, []string{v1.EIP7702AuthorizationSchemaV1}, authorizationSchemas)
 	require.Equal(t, []v1.EIP7702TransactionCapability{{ID: v1.EIP7702TransactionTypeV1, Number: 4}}, transactionTypes)
+}
+
+func TestSchemaRegistrationRejectsDefinitionReplacementUnderSameIdentity(t *testing.T) {
+	schemas := map[string]EIP712Schema{}
+	base := EIP712Schema{
+		ID: "fixed", Version: "1", PrimaryType: "Fixed", SignatureEncoding: v1.SignatureEncodingRSV27,
+		DefinitionHash: "0x01", HashMessage: eip712.HashPermitRaw, ValidateSigner: eip712.ValidatePermitSigner,
+	}
+	require.NoError(t, registerEIP712Schema(schemas, base))
+	changed := base
+	changed.DefinitionHash = "0x02"
+	require.ErrorContains(t, registerEIP712Schema(schemas, changed), "different immutable definition")
 }
 
 func TestRegistryRejectsEachUnsupportedCompatibilityDimension(t *testing.T) {

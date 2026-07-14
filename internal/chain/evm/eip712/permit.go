@@ -5,13 +5,18 @@
 package eip712
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"unicode/utf8"
 
 	enc "github.com/chain-signer/chain-signer/internal/encoding"
+	"github.com/chain-signer/chain-signer/internal/faults"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	"github.com/ethereum/go-ethereum/common"
 	ethmath "github.com/ethereum/go-ethereum/common/math"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 )
 
@@ -30,7 +35,11 @@ const (
 	// SignatureEncoding identifies the returned 65-byte r || s || v encoding.
 	// The v byte is encoded as 27 or 28.
 	SignatureEncoding = v1.SignatureEncodingRSV27
+
+	PermitDefinition = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)|Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)|signature=rsv-v27"
 )
+
+func PermitDefinitionHash() string { return crypto.Keccak256Hash([]byte(PermitDefinition)).Hex() }
 
 // Domain contains exactly the EIP-712 domain fields admitted by SchemaID.
 // ChainID is a canonical, positive base-10 uint256 string.
@@ -78,6 +87,33 @@ func HashPermit(domain Domain, message PermitMessage) (Hashes, error) {
 		StructHash:      common.BytesToHash(structHash),
 		Digest:          common.BytesToHash(digest),
 	}, nil
+}
+
+func HashPermitRaw(domain Domain, raw json.RawMessage) (Hashes, error) {
+	message, err := DecodePermitMessage(raw)
+	if err != nil {
+		return Hashes{}, faults.Newf(faults.Invalid, "decode registered Permit message: %v", err)
+	}
+	return HashPermit(domain, message)
+}
+
+func ValidatePermitSigner(expected common.Address, raw json.RawMessage) error {
+	message, err := DecodePermitMessage(raw)
+	if err != nil {
+		return faults.Newf(faults.Invalid, "decode registered Permit message: %v", err)
+	}
+	owner, err := enc.ParseEVMAddress("permit owner", message.Owner, false)
+	if err != nil {
+		return err
+	}
+	if expected != owner {
+		return faults.New(faults.Invalid, "permit owner does not match expected signer")
+	}
+	return nil
+}
+
+func DecodePermitMessage(raw json.RawMessage) (PermitMessage, error) {
+	return decodeFixedMessage[PermitMessage](raw)
 }
 
 // DomainSeparator validates and hashes the schema's fixed EIP-712 domain.
@@ -195,4 +231,24 @@ func newPermitTypedData(domain apitypes.TypedDataDomain, message apitypes.TypedD
 		Domain:      domain,
 		Message:     message,
 	}
+}
+
+func decodeFixedMessage[T any](raw json.RawMessage) (T, error) {
+	var value T
+	if len(bytes.TrimSpace(raw)) == 0 {
+		return value, faults.New(faults.Invalid, "message is required")
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&value); err != nil {
+		return value, err
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			return value, faults.New(faults.Invalid, "unexpected trailing JSON value")
+		}
+		return value, err
+	}
+	return value, nil
 }

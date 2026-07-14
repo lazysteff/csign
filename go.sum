@@ -1,6 +1,6 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-cloud.google.com/go/auth v0.21.0 h1:g/QwYfYb2Ai6HH8oomAOyBaIHLbscZ4+T/F/f5JZHkE=
-cloud.google.com/go/auth v0.21.0/go.mod h1:M9o2Oz+YI2jAfxewJgb1vyI3vceHF+eohmxyzmrl+9s=
+cloud.google.com/go/auth v0.22.0 h1:Xp9wAKkLoeaYb5pYZZoQGz4E9sdPxIbzS3gywZE3ciQ=
+cloud.google.com/go/auth v0.22.0/go.mod h1:M9o2Oz+YI2jAfxewJgb1vyI3vceHF+eohmxyzmrl+9s=
 cloud.google.com/go/auth/oauth2adapt v0.2.8 h1:keo8NaayQZ6wimpNSmW5OPc283g65QNIiLpZnkHRbnc=
 cloud.google.com/go/auth/oauth2adapt v0.2.8/go.mod h1:XQ9y31RkqZCcwJWNSx2Xvric3RrU88hAYYbjDWYDL+c=
 cloud.google.com/go/cloudsqlconn v1.22.1 h1:c4HkWMSV4pDL8kJid+nIuF+6iE07pR5Mn/sRVY17wf4=
@@ -13,8 +13,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/DataDog/datadog-go v3.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
-github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260607022201-88e0521b82d3 h1:5F/gcpJn+ez7My2HySC4mB18/4dAiRPV3Id+okRShPE=
-github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260607022201-88e0521b82d3/go.mod h1:ioLG6R+5bUSO1oeGSDxOV3FADARuMoytZCSX6MEMQkI=
+github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260713035539-e6945a76b084 h1:6s/UQYg+3io25cZGOoEy3HO4znQYXyrhDZ/PqZIp2vw=
+github.com/ProjectZKM/Ziren/crates/go-runtime/zkvm_runtime v0.0.0-20260713035539-e6945a76b084/go.mod h1:ioLG6R+5bUSO1oeGSDxOV3FADARuMoytZCSX6MEMQkI=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
@@ -301,8 +301,8 @@ github.com/pascaldekloe/goe v0.1.1/go.mod h1:KSyfaxQOh0HZPjDP1FL/kFtbqYqrALJTaMa
 github.com/pborman/uuid v1.2.1 h1:+ZZIw58t/ozdjRaXh/3awHfmWRbzYxJoAdNJxe/3pvw=
 github.com/pborman/uuid v1.2.1/go.mod h1:X/NO0urCmaxf9VXbdlT7C2Yzkj2IKimNn4k+gtPdI/k=
 github.com/petermattis/goid v0.0.0-20250813065127-a731cc31b4fe/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
-github.com/petermattis/goid v0.0.0-20260701081913-4f67fd55d3b4 h1:YCvN6o1QTbVkeHMlTjnzfP02SvsmOZLlJdFzw/f9BTk=
-github.com/petermattis/goid v0.0.0-20260701081913-4f67fd55d3b4/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
+github.com/petermattis/goid v0.0.0-20260713124913-97594f28f5ca h1:GHSUVE4yOgX4E7kTRzpxCPbCOYkd3Kj8Dgdod30OI1E=
+github.com/petermattis/goid v0.0.0-20260713124913-97594f28f5ca/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
 github.com/pierrec/lz4 v2.6.1+incompatible h1:9UY3+iC23yxF0UfGaYrGplQ+79Rg+h/q9FV9ix19jjM=
 github.com/pierrec/lz4 v2.6.1+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi+IEE17M5jbnwPHcY=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
@@ -465,10 +465,10 @@ google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55/go.mod h1:DMBHOl98
 google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013/go.mod h1:NbSheEEYHJ7i3ixzK3sjbqSGDJWnxyFXZblF3eUsNvo=
 google.golang.org/genproto v0.0.0-20260526163538-3dc84a4a5aaa h1:mfj8IS4EA4VAR9a6QDVxTQkLY64iBybb5QI1B4pXrpE=
 google.golang.org/genproto v0.0.0-20260526163538-3dc84a4a5aaa/go.mod h1:fuT7yonGw1Iq2oa+YC0fyqPPQJkgo/54gPNC6VitOkI=
-google.golang.org/genproto/googleapis/api v0.0.0-20260706201446-f0a921348800 h1:admdQBe8jR3VWhBsUrAOaF2Qw6K/+p5pSm1GN8+6Fw4=
-google.golang.org/genproto/googleapis/api v0.0.0-20260706201446-f0a921348800/go.mod h1:FPk7EXUKMtImne7AmknoYjT4QXqKIzzRbeQIXzLk6fQ=
-google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800 h1:qEHAMpSaUhtD0p3NbEEI83HwNGFxEwaSJ1G9PLnCBZE=
-google.golang.org/genproto/googleapis/rpc v0.0.0-20260706201446-f0a921348800/go.mod h1:4Hqkh8ycfw05ld/3BWL7rJOSfebL2Q+DVDeRgYgxUU8=
+google.golang.org/genproto/googleapis/api v0.0.0-20260713224248-f5fc221cf8c4 h1:lI0NbdWVmT6lOJJNDd7vyeTdfxP/7ouCLSJUKNNXa0k=
+google.golang.org/genproto/googleapis/api v0.0.0-20260713224248-f5fc221cf8c4/go.mod h1:WRrQ7/7N19PypuT0fxLOL5Lq0waoiRri4FbtHDEKrGE=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20260713224248-f5fc221cf8c4 h1:7RtFDizMtT9eZzHzKxifoMGfcDBBy+LYZlgfg24ZmOM=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20260713224248-f5fc221cf8c4/go.mod h1:4Hqkh8ycfw05ld/3BWL7rJOSfebL2Q+DVDeRgYgxUU8=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.23.0/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
 google.golang.org/grpc v1.25.1/go.mod h1:c3i+UQWmh7LiEpx4sFZnkU36qjEYZ0imhYfXVyQciAY=

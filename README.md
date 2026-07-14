@@ -16,7 +16,7 @@ It is designed for teams that want applications to request signatures through Va
 - EVM legacy native transfer
 - EVM EIP-1559 native transfer
 - EVM EIP-1559 contract call
-- constrained EIP-712 signing for the fixed ERC-2612 `Permit` schema `eip2612-permit-v1`
+- constrained EIP-712 signing for the fixed ERC-2612 `Permit` schema `eip2612-permit-v1` and verifying Paymaster approval schema `verifying-paymaster-approval-v1`
 - ERC-4337 v0.9 UserOperation signing for SimpleAccount `0.9`
 - EIP-7702 authorization signing with schema `eip7702-v1`
 - EIP-7702 type-4 transaction signing and recovery

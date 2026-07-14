@@ -38,5 +38,7 @@ func TestEIP712RequestStrictDecodePreservesTypedFields(t *testing.T) {
 	require.Equal(t, "1", request.ChainID)
 	require.Equal(t, EIP712SchemaEIP2612Permit, request.SchemaID)
 	require.Equal(t, "Token", request.Domain.Name)
-	require.Equal(t, "10", request.Message.Value)
+	var message EIP2612PermitMessage
+	require.NoError(t, json.Unmarshal(request.Message, &message))
+	require.Equal(t, "10", message.Value)
 }

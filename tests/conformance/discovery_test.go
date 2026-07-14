@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	registeredeip712 "github.com/chain-signer/chain-signer/internal/chain/evm/eip712"
 	"github.com/chain-signer/chain-signer/internal/routes"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	"github.com/stretchr/testify/require"
@@ -32,6 +33,12 @@ func TestConformance_AdvancedEVMCapabilityDiscovery(t *testing.T) {
 		ID:                v1.EIP712SchemaEIP2612Permit,
 		Version:           v1.EIP712SchemaEIP2612PermitVersion,
 		PrimaryType:       "Permit",
+		SignatureEncoding: v1.SignatureEncodingRSV27,
+	})
+	require.Contains(t, version.SupportedEIP712Schemas, v1.EIP712SchemaCapability{
+		ID:                registeredeip712.VerifyingPaymasterApprovalSchemaID,
+		Version:           registeredeip712.VerifyingPaymasterApprovalSchemaVersion,
+		PrimaryType:       "VerifyingPaymasterApproval",
 		SignatureEncoding: v1.SignatureEncodingRSV27,
 	})
 	require.Contains(t, version.SupportedERC4337ProtocolVersions, v1.ERC4337ProtocolV09)

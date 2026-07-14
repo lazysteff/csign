@@ -12,7 +12,7 @@ import (
 )
 
 func SignEIP712(ctx context.Context, material custody.Material, req *v1.EVMEIP712SignRequest) (*v1.EVMEIP712SignResponse, error) {
-	prepared, err := advancedcodec.PreparePermit(req.SchemaID, req.SchemaVersion, req.ChainID, req.ExpectedSignerAddress, req.Domain, req.Message)
+	prepared, err := advancedcodec.PrepareEIP712(req.SchemaID, req.SchemaVersion, req.ChainID, req.ExpectedSignerAddress, req.Domain, req.Message)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func SignEIP712(ctx context.Context, material custody.Material, req *v1.EVMEIP71
 }
 
 func VerifyEIP712(req v1.EVMEIP712VerifyRequest) (*v1.EVMEIP712VerifyResponse, error) {
-	prepared, err := advancedcodec.PreparePermit(req.SchemaID, req.SchemaVersion, req.ChainID, req.ExpectedSignerAddress, req.Domain, req.Message)
+	prepared, err := advancedcodec.PrepareEIP712(req.SchemaID, req.SchemaVersion, req.ChainID, req.ExpectedSignerAddress, req.Domain, req.Message)
 	if err != nil {
 		return nil, err
 	}

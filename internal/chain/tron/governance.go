@@ -33,6 +33,7 @@ func SignTRONVoteWitness(ctx context.Context, material custody.Material, req *v1
 		material,
 		req.KeyID,
 		req.Network,
+		req.RequestID,
 		v1.OperationTRONVoteWitness,
 		core.Transaction_Contract_VoteWitnessContract,
 		contract,

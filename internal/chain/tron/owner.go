@@ -14,7 +14,7 @@ import (
 func signTRONOwnerTransaction(
 	ctx context.Context,
 	material custody.Material,
-	keyID, network, operation string,
+	keyID, network, requestID, operation string,
 	contractType core.Transaction_Contract_ContractType,
 	contract proto.Message,
 	envelope v1.TRONRawDataEnvelope,
@@ -36,5 +36,5 @@ func signTRONOwnerTransaction(
 	if err != nil {
 		return nil, err
 	}
-	return signTransaction(ctx, material, keyID, network, operation, tx)
+	return signTransaction(ctx, material, keyID, network, requestID, operation, tx)
 }

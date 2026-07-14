@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## v0.7.0 - 2026-07-14
+
+Add registered verifying-Paymaster approvals and refresh dependencies.
+
+Highlights:
+
+- added the fixed `verifying-paymaster-approval-v1` EIP-712 schema for signing and verifying bounded ERC-4337 sponsorship approvals
+- generalized the registered EIP-712 envelope so each immutable schema owns and strictly decodes its message shape
+- added policy controls for EIP-712 verifying contracts and reused the existing EntryPoint allowlist for Paymaster approvals
+- preserved source compatibility for the original permit payload name while keeping ERC-2612-specific signer, token, spender, and value enforcement
+- returned request IDs consistently in signing responses and tightened EVM/TRON request validation and conformance coverage
+- refreshed compatible transitive Go module dependencies and verified all direct modules remain current
+
+Notes:
+
+- verifying-Paymaster approval signing is default-deny and requires explicit schema, verifying-contract, and EntryPoint allowlists
+- the schema binds the chain ID, EntryPoint, Paymaster, UserOperation hash, validity window, maximum sponsored cost, approval nonce, and context hash
+- existing ERC-2612, ERC-4337, EIP-7702, EVM transaction, and TRON signing contracts remain supported
+
 ## v0.6.0 - 2026-07-13
 
 Add constrained account-abstraction and EIP-7702 signing for EVM keys.

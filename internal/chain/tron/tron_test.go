@@ -63,6 +63,7 @@ func TestSignAndRecoverTRONOperations(t *testing.T) {
 		Expiration:    1710000060000,
 	})
 	require.NoError(t, err)
+	require.Equal(t, "req-trx", trxResp.RequestID)
 	requireRecoveredOperation(t, signer, trxResp.SignedPayload, v1.OperationTRXTransfer)
 
 	trc20Resp, err := SignTRC20Transfer(context.Background(), material, &v1.TRC20TransferSignRequest{
@@ -84,6 +85,7 @@ func TestSignAndRecoverTRONOperations(t *testing.T) {
 		Expiration:    1710000060000,
 	})
 	require.NoError(t, err)
+	require.Equal(t, "req-trc20", trc20Resp.RequestID)
 	requireRecoveredOperation(t, signer, trc20Resp.SignedPayload, v1.OperationTRC20Transfer)
 
 	resourceEnvelope := v1.TRONRawDataEnvelope{

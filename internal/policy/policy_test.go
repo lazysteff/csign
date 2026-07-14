@@ -123,6 +123,21 @@ func TestValidateEVMContractCall(t *testing.T) {
 	require.Equal(t, faults.PolicyDenied, faults.KindOf(ValidateEVMContractCall(key, req)))
 }
 
+func TestValidateEVMContractCallUsesNeutralDestinationAllowlist(t *testing.T) {
+	signer := testSignerAddress(t, v1.ChainFamilyEVM)
+	key := baseEVMKey(t)
+	key.Policy.AllowedContractDestinations = []string{testContract}
+	key.Policy.AllowedSelectors = []string{domain.TRC20TransferSelector}
+	req := &v1.EVMContractCallSignRequest{
+		BaseSignRequest: v1.BaseSignRequest{KeyID: "key-1", ChainFamily: v1.ChainFamilyEVM, Network: testNetwork, RequestID: testRequestID, SourceAddress: signer},
+		ChainID:         testEVMChainID, To: testContract, Value: "0", Data: "0xa9059cbb0000000000000000000000000000000000000000000000000000000000000000",
+		Nonce: 1, GasLimit: 50000, MaxFeePerGas: "1000", MaxPriorityFeePerGas: "100",
+	}
+	require.NoError(t, ValidateEVMContractCall(key, req))
+	req.To = testRecipient
+	require.Equal(t, faults.PolicyDenied, faults.KindOf(ValidateEVMContractCall(key, req)))
+}
+
 func TestValidateTRXAndTRC20Transfers(t *testing.T) {
 	signer := testSignerAddress(t, v1.ChainFamilyTRON)
 	key := baseTRONKey(signer)

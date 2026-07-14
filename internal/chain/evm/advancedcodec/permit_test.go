@@ -1,6 +1,7 @@
 package advancedcodec
 
 import (
+	"encoding/json"
 	"testing"
 
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -26,7 +27,9 @@ func TestPreparePermitMapsTypedContractAndChecksIdentities(t *testing.T) {
 	prepared, err := PreparePermit(v1.EIP712SchemaEIP2612Permit, v1.EIP712SchemaEIP2612PermitVersion, "1", codecSigner, domain, message)
 	require.NoError(t, err)
 	require.Equal(t, domain, prepared.Domain)
-	require.Equal(t, message, prepared.Message)
+	var decoded v1.EIP2612PermitMessage
+	require.NoError(t, json.Unmarshal(prepared.Message, &decoded))
+	require.Equal(t, message, decoded)
 	require.Equal(t, common.HexToAddress(codecSigner), prepared.Expected)
 	require.NotEqual(t, common.Hash{}, prepared.Hashes.DomainSeparator)
 	require.NotEqual(t, common.Hash{}, prepared.Hashes.StructHash)

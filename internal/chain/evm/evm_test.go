@@ -44,6 +44,7 @@ func TestSignAndRecoverOperations(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, v1.OperationEVMTransferLegacy, legacy.Operation)
+	require.Equal(t, "req-1", legacy.RequestID)
 
 	recovered, err := Recover(v1.VerifyRequest{
 		ChainFamily:           v1.ChainFamilyEVM,
@@ -73,6 +74,7 @@ func TestSignAndRecoverOperations(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, v1.OperationEVMTransferEIP1559, eip1559.Operation)
+	require.Equal(t, "req-2", eip1559.RequestID)
 
 	contractCall, err := SignContractCall(context.Background(), material, &v1.EVMContractCallSignRequest{
 		BaseSignRequest: v1.BaseSignRequest{
@@ -93,6 +95,7 @@ func TestSignAndRecoverOperations(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, v1.OperationEVMContractEIP1559, contractCall.Operation)
+	require.Equal(t, "req-3", contractCall.RequestID)
 
 	recovered, err = Recover(v1.VerifyRequest{
 		ChainFamily:           v1.ChainFamilyEVM,

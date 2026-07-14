@@ -160,6 +160,7 @@ type TRC20TransferSignRequest struct {
 
 type SignResponse struct {
 	APIVersion      string `json:"api_version"`
+	RequestID       string `json:"request_id,omitempty"`
 	KeyID           string `json:"key_id"`
 	ChainFamily     string `json:"chain_family"`
 	Network         string `json:"network"`
