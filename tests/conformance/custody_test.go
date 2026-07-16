@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/chain-signer/chain-signer/internal/custody"
-	"github.com/chain-signer/chain-signer/internal/domain"
 	enc "github.com/chain-signer/chain-signer/internal/encoding"
 	"github.com/chain-signer/chain-signer/internal/routes"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -98,15 +97,15 @@ func TestConformance_OperationDenialDoesNotInvokeExternalCustody(t *testing.T) {
 	privateKey := mustPrivateKey(t, testPrivHex)
 	resolveCalls := 0
 	signCalls := 0
-	resolver := &countingExternalResolver{
+	resolver := staticResolver{
 		calls: &resolveCalls,
-		material: custody.ExternalMaterial{
+		materials: map[string]custody.Material{"deny-all-hsm": custody.ExternalMaterial{
 			Pub: &privateKey.PublicKey,
 			SignFunc: func(context.Context, []byte) ([]byte, error) {
 				signCalls++
 				return nil, nil
 			},
-		},
+		}},
 	}
 	backend, storage := newTestBackend(t, resolver)
 	created, _ := createKey(t, ctx, backend, storage, v1.CreateKeyRequest{
@@ -128,14 +127,4 @@ func TestConformance_OperationDenialDoesNotInvokeExternalCustody(t *testing.T) {
 	require.ErrorContains(t, err, "signing_operation_not_allowed")
 	require.Zero(t, resolveCalls)
 	require.Zero(t, signCalls)
-}
-
-type countingExternalResolver struct {
-	calls    *int
-	material custody.Material
-}
-
-func (r *countingExternalResolver) ResolveExternal(context.Context, domain.Key) (custody.Material, error) {
-	*r.calls++
-	return r.material, nil
 }

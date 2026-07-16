@@ -1,6 +1,10 @@
 package service
 
-import "context"
+import (
+	"context"
+
+	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+)
 
 type SigningDenialCategory string
 
@@ -13,10 +17,9 @@ const (
 )
 
 type SigningDenialEvent struct {
-	KeyID     string
-	Route     string
-	Operation string
-	Category  SigningDenialCategory
+	v1.SigningOperationCapability
+	KeyID    string
+	Category SigningDenialCategory
 }
 
 // SigningAuditSink receives best-effort, payload-free policy denial events.

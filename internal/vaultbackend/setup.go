@@ -55,10 +55,7 @@ func newBackendWithCatalog(resolver custody.ExternalResolver, catalog *signingop
 		now:      time.Now,
 		recovery: service.NewRecoveryService(),
 	}
-	b.routes, err = b.routeRegistrations()
-	if err != nil {
-		return nil, err
-	}
+	b.routes = b.routeRegistrations()
 	b.Backend = &framework.Backend{
 		Help:        "Chain-Signer is a typed signing backend for EVM and TRON workloads.",
 		BackendType: logical.TypeLogical,
@@ -83,5 +80,5 @@ func (b *Backend) keyService(storage logical.Storage) *service.KeyService {
 }
 
 func (b *Backend) signingService(storage logical.Storage) *service.SigningService {
-	return service.NewSigningService(repository.NewVaultKeyRepository(storage, b.catalog), b.policies, b.custody, b.registry, backendSigningAudit{backend: b})
+	return service.NewSigningService(repository.NewVaultKeyRepository(storage, b.catalog), b.policies, b.custody, b.registry, denialAudit{logger: b.Logger()})
 }

@@ -17,8 +17,7 @@ import (
 type OperationExecutor func(context.Context, custody.Material, any) (any, error)
 
 type OperationDescriptor struct {
-	Route      string
-	Operation  string
+	v1.SigningOperationCapability
 	NewRequest func() any
 	Validate   policy.Validator
 	Execute    OperationExecutor
@@ -129,8 +128,7 @@ func newOperation[T any, R any](
 ) OperationDescriptor {
 	operation, _ := catalog.OperationForRoute(route)
 	return OperationDescriptor{
-		Route:     route,
-		Operation: operation,
+		SigningOperationCapability: v1.SigningOperationCapability{Route: route, Operation: operation},
 		NewRequest: func() any {
 			return new(T)
 		},

@@ -47,7 +47,7 @@ func TestSigningOperationGateCoversEveryCatalogRoute(t *testing.T) {
 						registry, nil,
 					)
 
-					result, err := service.Execute(context.Background(), entry.Route, testKeyRequest{KeyID: "key-1"})
+					result, err := service.Execute(context.Background(), entry.Route, v1.BaseSignRequest{KeyID: "key-1"})
 					if test.permit {
 						require.NoError(t, err)
 						require.Equal(t, "ok", result)
@@ -100,7 +100,7 @@ func TestSigningOperationGateDeniesWithoutCustody(t *testing.T) {
 				registry, audit,
 			)
 
-			_, err := service.Execute(context.Background(), entry.Route, testKeyRequest{KeyID: "key-1"})
+			_, err := service.Execute(context.Background(), entry.Route, v1.BaseSignRequest{KeyID: "key-1"})
 			require.Equal(t, faults.PolicyDenied, faults.KindOf(err))
 			require.Equal(t, faults.SigningOperationNotAllowed, faults.CodeOf(err))
 			require.Equal(t, 1, keys.calls)
@@ -108,7 +108,9 @@ func TestSigningOperationGateDeniesWithoutCustody(t *testing.T) {
 			require.False(t, validated)
 			require.False(t, executed)
 			require.Equal(t, []SigningDenialEvent{{
-				KeyID: "key-1", Route: entry.Route, Operation: entry.Operation, Category: test.category,
+				SigningOperationCapability: entry,
+				KeyID:                      "key-1",
+				Category:                   test.category,
 			}}, audit.events)
 		})
 	}
@@ -125,11 +127,14 @@ func TestSigningOperationGateRejectsInvalidDescriptorBeforeKeyLookup(t *testing.
 			audit := &recordingAudit{}
 			service := NewSigningService(keys, policy.DefaultEvaluator{}, fakeCustodyResolver{}, staticOperationRegistry{catalog: catalog, descriptor: descriptor}, audit)
 
-			_, err := service.Execute(context.Background(), entry.Route, testKeyRequest{KeyID: "unvalidated"})
+			_, err := service.Execute(context.Background(), entry.Route, v1.BaseSignRequest{KeyID: "unvalidated"})
 			require.Equal(t, faults.PolicyDenied, faults.KindOf(err))
 			require.Equal(t, faults.SigningOperationNotAllowed, faults.CodeOf(err))
 			require.Zero(t, keys.calls)
-			require.Equal(t, []SigningDenialEvent{{Route: entry.Route, Category: SigningDenialInvalidRoute}}, audit.events)
+			require.Equal(t, []SigningDenialEvent{{
+				SigningOperationCapability: v1.SigningOperationCapability{Route: entry.Route},
+				Category:                   SigningDenialInvalidRoute,
+			}}, audit.events)
 		})
 	}
 }
@@ -141,12 +146,14 @@ func TestSigningOperationGatePreservesMissingKeyResponse(t *testing.T) {
 	keys := &fakeKeyLookup{err: repository.ErrKeyNotFound}
 	service := NewSigningService(keys, policy.DefaultEvaluator{}, fakeCustodyResolver{}, staticOperationRegistry{catalog: catalog, descriptor: genericDescriptor(entry, new(bool), new(bool))}, audit)
 
-	_, err := service.Execute(context.Background(), entry.Route, testKeyRequest{KeyID: "missing"})
+	_, err := service.Execute(context.Background(), entry.Route, v1.BaseSignRequest{KeyID: "missing"})
 	require.Equal(t, faults.NotFound, faults.KindOf(err))
 	require.Empty(t, faults.CodeOf(err))
 	require.NotContains(t, err.Error(), "operation")
 	require.Equal(t, []SigningDenialEvent{{
-		KeyID: "missing", Route: entry.Route, Operation: entry.Operation, Category: SigningDenialKeyNotFound,
+		SigningOperationCapability: entry,
+		KeyID:                      "missing",
+		Category:                   SigningDenialKeyNotFound,
 	}}, audit.events)
 }
 
@@ -157,11 +164,13 @@ func TestSigningOperationGateClassifiesMalformedStoredRecord(t *testing.T) {
 	keys := &fakeKeyLookup{err: repository.ErrInvalidPolicyRecord}
 	service := NewSigningService(keys, policy.DefaultEvaluator{}, fakeCustodyResolver{}, staticOperationRegistry{catalog: catalog, descriptor: genericDescriptor(entry, new(bool), new(bool))}, audit)
 
-	_, err := service.Execute(context.Background(), entry.Route, testKeyRequest{KeyID: "corrupted"})
+	_, err := service.Execute(context.Background(), entry.Route, v1.BaseSignRequest{KeyID: "corrupted"})
 	require.Equal(t, faults.PolicyDenied, faults.KindOf(err))
 	require.Equal(t, faults.SigningOperationNotAllowed, faults.CodeOf(err))
 	require.Equal(t, []SigningDenialEvent{{
-		KeyID: "corrupted", Route: entry.Route, Operation: entry.Operation, Category: SigningDenialInvalidPolicyRecord,
+		SigningOperationCapability: entry,
+		KeyID:                      "corrupted",
+		Category:                   SigningDenialInvalidPolicyRecord,
 	}}, audit.events)
 }
 
@@ -171,14 +180,10 @@ func TestSigningDenialAuditFailureDoesNotChangeDenial(t *testing.T) {
 	keys := &fakeKeyLookup{key: &domain.Key{ID: "key-1"}}
 	service := NewSigningService(keys, policy.DefaultEvaluator{}, fakeCustodyResolver{}, staticOperationRegistry{catalog: catalog, descriptor: genericDescriptor(entry, new(bool), new(bool))}, panicAudit{})
 
-	_, err := service.Execute(context.Background(), entry.Route, testKeyRequest{KeyID: "key-1"})
+	_, err := service.Execute(context.Background(), entry.Route, v1.BaseSignRequest{KeyID: "key-1"})
 	require.Equal(t, faults.PolicyDenied, faults.KindOf(err))
 	require.Equal(t, faults.SigningOperationNotAllowed, faults.CodeOf(err))
 }
-
-type testKeyRequest struct{ KeyID string }
-
-func (r testKeyRequest) GetKeyID() string { return r.KeyID }
 
 type staticOperationRegistry struct {
 	catalog    *signingops.Catalog
@@ -198,8 +203,8 @@ func (r staticOperationRegistry) Catalog() *signingops.Catalog { return r.catalo
 
 func genericDescriptor(entry v1.SigningOperationCapability, validated, executed *bool) OperationDescriptor {
 	return OperationDescriptor{
-		Route: entry.Route, Operation: entry.Operation,
-		NewRequest: func() any { return &testKeyRequest{} },
+		SigningOperationCapability: entry,
+		NewRequest:                 func() any { return &v1.BaseSignRequest{} },
 		Validate: func(domain.Key, any) error {
 			*validated = true
 			return nil

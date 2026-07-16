@@ -1,7 +1,6 @@
 package vaultbackend
 
 import (
-	"fmt"
 	"sort"
 
 	"github.com/chain-signer/chain-signer/internal/routes"
@@ -10,12 +9,11 @@ import (
 )
 
 type pathRegistration struct {
-	PublicRoute      string
-	SigningOperation string
-	Path             *framework.Path
+	PublicRoute string
+	Path        *framework.Path
 }
 
-func (b *Backend) routeRegistrations() ([]pathRegistration, error) {
+func (b *Backend) routeRegistrations() []pathRegistration {
 	keyID := map[string]*framework.FieldSchema{
 		"key_id": {Type: framework.TypeString},
 	}
@@ -138,18 +136,13 @@ func (b *Backend) routeRegistrations() ([]pathRegistration, error) {
 	}
 
 	for _, route := range b.registry.Routes() {
-		operation, ok := b.catalog.OperationForRoute(route)
-		if !ok {
-			return nil, fmt.Errorf("signing route %q is missing from the operation catalog", route)
-		}
 		registrations = append(registrations, pathRegistration{
-			PublicRoute:      route,
-			SigningOperation: operation,
-			Path:             b.signPath(route),
+			PublicRoute: route,
+			Path:        b.signPath(route),
 		})
 	}
 
-	return registrations, nil
+	return registrations
 }
 
 func registeredPaths(registrations []pathRegistration) []*framework.Path {

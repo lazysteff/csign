@@ -20,7 +20,7 @@ func TestSigningServiceOrchestratesValidationAndExecution(t *testing.T) {
 
 	_, registry := testOperationRegistry(t, []OperationDescriptor{
 		{
-			Route: "test/route",
+			SigningOperationCapability: v1.SigningOperationCapability{Route: "test/route"},
 			NewRequest: func() any {
 				return &v1.EVMLegacyTransferSignRequest{}
 			},
@@ -65,8 +65,8 @@ func TestSigningServiceStopsOnPolicyDenial(t *testing.T) {
 
 	_, registry := testOperationRegistry(t, []OperationDescriptor{
 		{
-			Route:      "test/route",
-			NewRequest: func() any { return &v1.EVMLegacyTransferSignRequest{} },
+			SigningOperationCapability: v1.SigningOperationCapability{Route: "test/route"},
+			NewRequest:                 func() any { return &v1.EVMLegacyTransferSignRequest{} },
 			Validate: func(domain.Key, any) error {
 				return faults.New(faults.PolicyDenied, "denied")
 			},
@@ -96,9 +96,9 @@ func TestSigningServiceStopsOnPolicyDenial(t *testing.T) {
 func TestSigningServiceWrapsCustodyFailures(t *testing.T) {
 	_, registry := testOperationRegistry(t, []OperationDescriptor{
 		{
-			Route:      "test/route",
-			NewRequest: func() any { return &v1.EVMLegacyTransferSignRequest{} },
-			Validate:   func(domain.Key, any) error { return nil },
+			SigningOperationCapability: v1.SigningOperationCapability{Route: "test/route"},
+			NewRequest:                 func() any { return &v1.EVMLegacyTransferSignRequest{} },
+			Validate:                   func(domain.Key, any) error { return nil },
 			Execute: func(context.Context, custody.Material, any) (any, error) {
 				return &v1.SignResponse{}, nil
 			},
@@ -136,9 +136,9 @@ func TestStructuredEVMExecutionErrorsAreSanitizedAndClassified(t *testing.T) {
 func TestSigningServiceRejectsInvalidKeyIDsBeforeLookup(t *testing.T) {
 	_, registry := testOperationRegistry(t, []OperationDescriptor{
 		{
-			Route:      "test/route",
-			NewRequest: func() any { return &v1.EVMLegacyTransferSignRequest{} },
-			Validate:   func(domain.Key, any) error { return nil },
+			SigningOperationCapability: v1.SigningOperationCapability{Route: "test/route"},
+			NewRequest:                 func() any { return &v1.EVMLegacyTransferSignRequest{} },
+			Validate:                   func(domain.Key, any) error { return nil },
 			Execute: func(context.Context, custody.Material, any) (any, error) {
 				return &v1.SignResponse{}, nil
 			},
@@ -167,10 +167,10 @@ func TestSigningServiceRejectsInvalidKeyIDsBeforeLookup(t *testing.T) {
 func TestSigningServiceRejectsTypedNilRequestBeforeLookup(t *testing.T) {
 	_, registry := testOperationRegistry(t, []OperationDescriptor{
 		{
-			Route:      "test/route",
-			NewRequest: func() any { return &v1.EVMLegacyTransferSignRequest{} },
-			Validate:   func(domain.Key, any) error { return nil },
-			Execute:    func(context.Context, custody.Material, any) (any, error) { return &v1.SignResponse{}, nil },
+			SigningOperationCapability: v1.SigningOperationCapability{Route: "test/route"},
+			NewRequest:                 func() any { return &v1.EVMLegacyTransferSignRequest{} },
+			Validate:                   func(domain.Key, any) error { return nil },
+			Execute:                    func(context.Context, custody.Material, any) (any, error) { return &v1.SignResponse{}, nil },
 		},
 	})
 	keys := &fakeKeyLookup{}
@@ -193,7 +193,7 @@ func testOperationRegistry(t *testing.T, descriptors []OperationDescriptor) (*si
 	entries := make([]v1.SigningOperationCapability, 0, len(descriptors))
 	for index := range descriptors {
 		descriptors[index].Operation = "test_operation"
-		entries = append(entries, v1.SigningOperationCapability{Route: descriptors[index].Route, Operation: descriptors[index].Operation})
+		entries = append(entries, descriptors[index].SigningOperationCapability)
 	}
 	catalog, err := signingops.New(entries)
 	require.NoError(t, err)

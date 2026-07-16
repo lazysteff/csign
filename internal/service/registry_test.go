@@ -52,10 +52,9 @@ func TestRegistryRejectsCatalogEntriesWithoutDescriptors(t *testing.T) {
 
 func testDescriptor(route string) OperationDescriptor {
 	return OperationDescriptor{
-		Route:      route,
-		Operation:  "test_operation",
-		NewRequest: func() any { return &v1.EVMLegacyTransferSignRequest{} },
-		Validate:   func(domain.Key, any) error { return nil },
+		SigningOperationCapability: v1.SigningOperationCapability{Route: route, Operation: "test_operation"},
+		NewRequest:                 func() any { return &v1.EVMLegacyTransferSignRequest{} },
+		Validate:                   func(domain.Key, any) error { return nil },
 		Execute: func(context.Context, custody.Material, any) (any, error) {
 			return &v1.SignResponse{}, nil
 		},

@@ -15,7 +15,8 @@ func (s *SigningService) validateOperationDescriptor(ctx context.Context, route 
 		return nil
 	}
 	emitSigningDenial(ctx, s.audit, SigningDenialEvent{
-		Route: route, Category: SigningDenialInvalidRoute,
+		SigningOperationCapability: v1.SigningOperationCapability{Route: route},
+		Category:                   SigningDenialInvalidRoute,
 	})
 	return faults.NewCode(faults.PolicyDenied, faults.SigningOperationNotAllowed, "signing route does not have a registered operation")
 }
@@ -55,6 +56,8 @@ func (s *SigningService) authorizeSigningOperation(ctx context.Context, keyID st
 
 func signingDenial(keyID string, descriptor OperationDescriptor, category SigningDenialCategory) SigningDenialEvent {
 	return SigningDenialEvent{
-		KeyID: keyID, Route: descriptor.Route, Operation: descriptor.Operation, Category: category,
+		SigningOperationCapability: descriptor.SigningOperationCapability,
+		KeyID:                      keyID,
+		Category:                   category,
 	}
 }
