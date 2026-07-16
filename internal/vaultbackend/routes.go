@@ -10,6 +10,7 @@ import (
 
 type pathRegistration struct {
 	PublicRoute string
+	Signing     bool
 	Path        *framework.Path
 }
 
@@ -138,6 +139,7 @@ func (b *Backend) routeRegistrations() []pathRegistration {
 	for _, route := range b.registry.Routes() {
 		registrations = append(registrations, pathRegistration{
 			PublicRoute: route,
+			Signing:     true,
 			Path:        b.signPath(route),
 		})
 	}

@@ -35,33 +35,10 @@ type Policy struct {
 	MaxAuthorizationListEntries     uint64            `json:"max_authorization_list_entries,omitempty"`
 }
 
-// StructuredPolicy is the typed policy contract accepted by policy-update
-// requests. It intentionally excludes opaque application policy context.
-type StructuredPolicy struct {
-	AllowedNetworks                 []string `json:"allowed_networks,omitempty"`
-	AllowedChainIDs                 []int64  `json:"allowed_chain_ids,omitempty"`
-	MaxValue                        string   `json:"max_value,omitempty"`
-	MaxGasLimit                     uint64   `json:"max_gas_limit,omitempty"`
-	MaxGasPrice                     string   `json:"max_gas_price,omitempty"`
-	MaxFeePerGas                    string   `json:"max_fee_per_gas,omitempty"`
-	MaxPriorityFeePerGas            string   `json:"max_priority_fee_per_gas,omitempty"`
-	MaxFeeLimit                     int64    `json:"max_fee_limit,omitempty"`
-	AllowedTokenContracts           []string `json:"allowed_token_contracts,omitempty"`
-	AllowedSelectors                []string `json:"allowed_selectors,omitempty"`
-	AllowedSigningOperations        []string `json:"allowed_signing_operations,omitempty"`
-	AllowedEIP712Schemas            []string `json:"allowed_eip712_schemas,omitempty"`
-	AllowedEIP712VerifyingContracts []string `json:"allowed_eip712_verifying_contracts,omitempty"`
-	AllowedERC4337Versions          []string `json:"allowed_erc4337_versions,omitempty"`
-	AllowedEntryPoints              []string `json:"allowed_entry_points,omitempty"`
-	AllowedAccountImplementations   []string `json:"allowed_account_implementations,omitempty"`
-	AllowedAccountSigningSchemas    []string `json:"allowed_account_signing_schemas,omitempty"`
-	AllowedEIP7702Delegates         []string `json:"allowed_eip7702_delegates,omitempty"`
-	AllowEIP7702Revocation          bool     `json:"allow_eip7702_revocation,omitempty"`
-	AllowEIP7702ChainIDZero         bool     `json:"allow_eip7702_chain_id_zero,omitempty"`
-	AllowedTransactionTypes         []string `json:"allowed_transaction_types,omitempty"`
-	AllowedContractDestinations     []string `json:"allowed_contract_destinations,omitempty"`
-	MaxAuthorizationListEntries     uint64   `json:"max_authorization_list_entries,omitempty"`
-}
+// StructuredPolicy is the policy-update contract. It aliases the canonical
+// policy model so the two representations cannot drift. The update request's
+// decoder rejects the deprecated AdditionalPolicyContext storage field.
+type StructuredPolicy = Policy
 
 func (p Policy) IsZero() bool {
 	return len(p.AllowedNetworks) == 0 &&
@@ -109,6 +86,15 @@ func (r *UpdateKeyPolicyRequest) UnmarshalJSON(data []byte) error {
 	policy, ok := raw["policy"]
 	if ok && bytes.Equal(bytes.TrimSpace(policy), []byte("null")) {
 		return fmt.Errorf("policy must not be null")
+	}
+	if ok {
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(policy, &fields); err != nil {
+			return err
+		}
+		if _, exists := fields["additional_policy_context"]; exists {
+			return fmt.Errorf("json: unknown field %q", "additional_policy_context")
+		}
 	}
 	r.policySet = ok
 	return nil

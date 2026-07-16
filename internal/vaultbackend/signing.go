@@ -10,7 +10,7 @@ import (
 func (b *Backend) handleSign(route string) framework.OperationFunc {
 	return func(ctx context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
 		signing := b.signingService(req.Storage)
-		payload, err := signing.NewRequest(route)
+		payload, err := signing.NewRequest(ctx, route)
 		if err != nil {
 			return nil, mapError(err)
 		}

@@ -28,11 +28,61 @@ func TestSigningOperationGateRejectsInvalidDescriptorBeforeKeyLookup(t *testing.
 			require.Equal(t, faults.PolicyDenied, faults.KindOf(err))
 			require.Equal(t, faults.SigningOperationNotAllowed, faults.CodeOf(err))
 			require.Zero(t, keys.calls)
-			require.Equal(t, []SigningDenialEvent{operationDenial(
-				v1.SigningOperationCapability{Route: entry.Route}, "", SigningDenialInvalidRoute,
-			)}, audit.events)
+			require.Equal(t, []SigningDenialEvent{operationDenial(entry, "", SigningDenialInvalidDescriptor)}, audit.events)
 		})
 	}
+}
+
+func TestSigningOperationGateRejectsMissingDescriptorBeforeKeyLookup(t *testing.T) {
+	catalog := signingops.Default()
+	entry := catalog.Entries()[0]
+	keys := &fakeKeyLookup{}
+	audit := &recordingAudit{}
+	registry := staticOperationRegistry{
+		catalog:   catalog,
+		lookupErr: faults.New(faults.Unsupported, "descriptor is missing"),
+	}
+	service := NewSigningService(keys, policy.DefaultEvaluator{}, fakeCustodyResolver{}, registry, audit)
+
+	_, err := service.Execute(context.Background(), entry.Route, v1.BaseSignRequest{KeyID: "unvalidated"})
+	require.Equal(t, faults.PolicyDenied, faults.KindOf(err))
+	require.Equal(t, faults.SigningOperationNotAllowed, faults.CodeOf(err))
+	require.Zero(t, keys.calls)
+	require.Equal(t, []SigningDenialEvent{operationDenial(entry, "", SigningDenialInvalidDescriptor)}, audit.events)
+}
+
+func TestUnknownRouteAuditOmitsUnregisteredIdentity(t *testing.T) {
+	catalog := signingops.Default()
+	keys := &fakeKeyLookup{}
+	audit := &recordingAudit{}
+	registry := staticOperationRegistry{
+		catalog:   catalog,
+		lookupErr: faults.New(faults.Unsupported, "descriptor is missing"),
+	}
+	service := NewSigningService(keys, policy.DefaultEvaluator{}, fakeCustodyResolver{}, registry, audit)
+
+	_, err := service.Execute(context.Background(), "request-controlled-route", v1.BaseSignRequest{KeyID: "unvalidated"})
+	require.Equal(t, faults.SigningOperationNotAllowed, faults.CodeOf(err))
+	require.Zero(t, keys.calls)
+	require.Equal(t, []SigningDenialEvent{operationDenial(v1.SigningOperationCapability{}, "", SigningDenialInvalidDescriptor)}, audit.events)
+}
+
+func TestSigningOperationGateRejectsInvalidRequestFactoryBeforeDecode(t *testing.T) {
+	catalog := signingops.Default()
+	entry := catalog.Entries()[0]
+	descriptor := genericDescriptor(entry, new(bool), new(bool))
+	descriptor.NewRequest = func() any { return struct{}{} }
+	audit := &recordingAudit{}
+	keys := &fakeKeyLookup{}
+	service := NewSigningService(keys, policy.DefaultEvaluator{}, fakeCustodyResolver{}, staticOperationRegistry{
+		catalog: catalog, descriptor: descriptor,
+	}, audit)
+
+	_, err := service.NewRequest(context.Background(), entry.Route)
+	require.Equal(t, faults.PolicyDenied, faults.KindOf(err))
+	require.Equal(t, faults.SigningOperationNotAllowed, faults.CodeOf(err))
+	require.Zero(t, keys.calls)
+	require.Equal(t, []SigningDenialEvent{operationDenial(entry, "", SigningDenialInvalidDescriptor)}, audit.events)
 }
 
 func TestSigningOperationGatePreservesMissingKeyResponse(t *testing.T) {

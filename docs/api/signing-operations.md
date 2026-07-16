@@ -37,7 +37,7 @@ The plugin fails startup if catalog entries, signing descriptors, or registered 
 
 The signer resolves and revalidates the registered descriptor before parsing the typed request. After syntactic `key_id` validation, it loads key metadata, validates the complete stored allowlist, and requires the descriptor's exact operation before running route policy or accessing custody. Request data cannot select the operation.
 
-A nonexistent key keeps the existing not-found response and does not disclose whether its operation would have been allowed. These operation denials all return `PolicyDenied` with `signing_operation_not_allowed`:
+A nonexistent key keeps the existing not-found response, does not disclose whether its operation would have been allowed, and emits the distinct `key_not_found` audit category. These operation denials all return `PolicyDenied` with `signing_operation_not_allowed`:
 
 - `missing_allowlist`: the policy is valid and intentionally denies every operation;
 - `operation_mismatch`: the list is valid but lacks the selected operation;

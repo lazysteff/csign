@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"reflect"
 
 	"github.com/chain-signer/chain-signer/internal/chain"
 	"github.com/chain-signer/chain-signer/internal/custody"
@@ -46,12 +45,17 @@ func (s *SigningService) Routes() []string {
 	return s.registry.Routes()
 }
 
-func (s *SigningService) NewRequest(route string) (any, error) {
-	descriptor, err := s.registry.Lookup(route)
+func (s *SigningService) NewRequest(ctx context.Context, route string) (any, error) {
+	descriptor, err := s.resolveOperationDescriptor(ctx, route)
 	if err != nil {
 		return nil, err
 	}
-	return descriptor.NewRequest(), nil
+	request, err := newOperationRequest(descriptor)
+	if err != nil {
+		s.emitInvalidDescriptor(ctx, route)
+		return nil, signingOperationDenied("signing route has an invalid request factory")
+	}
+	return request, nil
 }
 
 func (s *SigningService) Sign(ctx context.Context, route string, request any) (*v1.SignResponse, error) {
@@ -67,11 +71,8 @@ func (s *SigningService) Sign(ctx context.Context, route string, request any) (*
 }
 
 func (s *SigningService) Execute(ctx context.Context, route string, request any) (any, error) {
-	descriptor, err := s.registry.Lookup(route)
+	descriptor, err := s.resolveOperationDescriptor(ctx, route)
 	if err != nil {
-		return nil, err
-	}
-	if err := s.validateOperationDescriptor(ctx, route, descriptor); err != nil {
 		return nil, err
 	}
 	keyID, err := keyIDFromRequest(request)
@@ -119,28 +120,4 @@ func (s *SigningService) Execute(ctx context.Context, route string, request any)
 		return nil, faults.Wrap(faults.Invalid, err)
 	}
 	return result, nil
-}
-
-func keyIDFromRequest(request any) (string, error) {
-	type keyIDCarrier interface {
-		GetKeyID() string
-	}
-	if request == nil || isNilValue(request) {
-		return "", faults.New(faults.Internal, "request is required")
-	}
-	typed, ok := request.(keyIDCarrier)
-	if !ok {
-		return "", faults.New(faults.Internal, "request does not contain key_id")
-	}
-	return typed.GetKeyID(), nil
-}
-
-func isNilValue(value any) bool {
-	reflected := reflect.ValueOf(value)
-	switch reflected.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
-		return reflected.IsNil()
-	default:
-		return false
-	}
 }

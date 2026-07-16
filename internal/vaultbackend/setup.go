@@ -56,6 +56,9 @@ func newBackendWithCatalog(resolver custody.ExternalResolver, catalog *signingop
 		recovery: service.NewRecoveryService(),
 	}
 	b.routes = b.routeRegistrations()
+	if err := validateRouteRegistrations(catalog, b.routes); err != nil {
+		return nil, err
+	}
 	b.Backend = &framework.Backend{
 		Help:        "Chain-Signer is a typed signing backend for EVM and TRON workloads.",
 		BackendType: logical.TypeLogical,

@@ -48,7 +48,7 @@ Highlights:
 - reorganized the advanced-EVM API, codecs, policy, Vault transport, client, conformance tests, and API manual into responsibility-focused modules with concise, non-repeating paths
 - added dedicated Vault routes and typed Go client methods for all four capabilities
 - extended `/v1/version` with typed schema, protocol, account, and transaction capability records
-- added `POST v1/key-policy/{key_id}` and `Client.Keys.SetPolicy` with a typed `StructuredPolicy` contract to replace a key's enforced policy fields
+- added `POST v1/key-policy/{key_id}` and `Client.Keys.SetPolicy` with a source-compatible `StructuredPolicy` alias of the canonical `Policy` model to replace a key's enforced policy fields without duplicating definitions
 - added default-deny policy controls for all advanced EVM signing operations, delegates, EntryPoints, account implementations, signing schemas, destinations, and authorization-list size
 - added strict request decoding plus canonical decimal-string, lowercase address, and lowercase `0x`-hex validation for the new routes
 - kept advanced requests protocol-only: opaque metadata, labels, approval references, and arbitrary workflow fields are rejected

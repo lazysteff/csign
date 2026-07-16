@@ -13,9 +13,13 @@ import (
 type staticOperationRegistry struct {
 	catalog    *signingops.Catalog
 	descriptor OperationDescriptor
+	lookupErr  error
 }
 
 func (r staticOperationRegistry) Lookup(route string) (OperationDescriptor, error) {
+	if r.lookupErr != nil {
+		return OperationDescriptor{}, r.lookupErr
+	}
 	if route != r.descriptor.Route {
 		return OperationDescriptor{}, faults.New(faults.Unsupported, "unsupported route")
 	}

@@ -12,7 +12,7 @@ const (
 	SigningDenialMissingAllowlist    SigningDenialCategory = "missing_allowlist"
 	SigningDenialOperationMismatch   SigningDenialCategory = "operation_mismatch"
 	SigningDenialInvalidPolicyRecord SigningDenialCategory = "invalid_policy_record"
-	SigningDenialInvalidRoute        SigningDenialCategory = "invalid_route_descriptor"
+	SigningDenialInvalidDescriptor   SigningDenialCategory = "invalid_route_descriptor"
 	SigningDenialKeyNotFound         SigningDenialCategory = "key_not_found"
 )
 

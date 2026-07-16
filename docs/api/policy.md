@@ -18,7 +18,7 @@ The `policy` object is attached to a key and enforced at sign time.
 | `max_fee_limit` | int64 | TRON transfers | Maximum TRON fee limit on the existing TRX and TRC-20 routes. |
 | `allowed_token_contracts` | array of string | EVM contract calls, EIP-712, TRC-20 | Allowlisted contract addresses, including the EIP-712 verifying token contract. |
 | `allowed_selectors` | array of string | EVM contract calls, ERC-4337, EIP-7702 type-4, TRC-20 | Allowlisted first four decoded bytes. For ERC-4337 this applies to the outer account `call_data`, not nested target calldata. |
-| `additional_policy_context` | object | deprecated stored records only | Returned for older key records but not enforced. `StructuredPolicy` excludes it, and the policy-update route preserves an existing value without allowing callers to create or modify it. |
+| `additional_policy_context` | object | deprecated stored records only | Returned for older key records but not enforced. The policy-update decoder rejects it, and the service preserves an existing value without allowing callers to create or modify it. |
 | `allowed_signing_operations` | array of string | every signing route | Exact canonical operation allowlist. Missing, nil, or empty is valid deny-all. See the [complete registry](signing-operations.md#canonical-registry). |
 | `allowed_eip712_schemas` | array of string | EIP-712 | Required schema allowlist. Current IDs include `eip2612-permit-v1` and `verifying-paymaster-approval-v1`; discover the compiled set through `v1/version`. |
 | `allowed_eip712_verifying_contracts` | array of address | registered EIP-712 schemas that use a dedicated verifying-contract policy | Required verifying-contract allowlist for schemas such as Paymaster approvals. |

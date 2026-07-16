@@ -10,22 +10,37 @@ import (
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 )
 
-func (s *SigningService) validateOperationDescriptor(ctx context.Context, route string, descriptor OperationDescriptor) error {
-	if s.catalog != nil && descriptor.Route == route && s.catalog.ValidateBinding(descriptor.Route, descriptor.Operation) == nil {
-		return nil
+func (s *SigningService) resolveOperationDescriptor(ctx context.Context, route string) (OperationDescriptor, error) {
+	descriptor, err := s.registry.Lookup(route)
+	if err == nil && s.catalog != nil && descriptor.Route == route && s.catalog.ValidateBinding(descriptor.Route, descriptor.Operation) == nil {
+		return descriptor, nil
+	}
+	s.emitInvalidDescriptor(ctx, route)
+	return OperationDescriptor{}, signingOperationDenied("signing route does not have a registered operation")
+}
+
+func (s *SigningService) emitInvalidDescriptor(ctx context.Context, route string) {
+	capability := v1.SigningOperationCapability{}
+	if s.catalog != nil {
+		if operation, ok := s.catalog.OperationForRoute(route); ok {
+			capability = v1.SigningOperationCapability{Route: route, Operation: operation}
+		}
 	}
 	emitSigningDenial(ctx, s.audit, SigningDenialEvent{
-		SigningOperationCapability: v1.SigningOperationCapability{Route: route},
-		Category:                   SigningDenialInvalidRoute,
+		SigningOperationCapability: capability,
+		Category:                   SigningDenialInvalidDescriptor,
 	})
-	return faults.NewCode(faults.PolicyDenied, faults.SigningOperationNotAllowed, "signing route does not have a registered operation")
+}
+
+func signingOperationDenied(message string) error {
+	return faults.NewCode(faults.PolicyDenied, faults.SigningOperationNotAllowed, message)
 }
 
 func (s *SigningService) loadSigningKey(ctx context.Context, keyID string, descriptor OperationDescriptor) (*domain.Key, error) {
 	key, err := s.keys.GetKey(ctx, keyID)
 	if errors.Is(err, repository.ErrInvalidPolicyRecord) {
 		emitSigningDenial(ctx, s.audit, signingDenial(keyID, descriptor, SigningDenialInvalidPolicyRecord))
-		return nil, faults.NewCode(faults.PolicyDenied, faults.SigningOperationNotAllowed, "stored signing operation policy is invalid")
+		return nil, signingOperationDenied("stored signing operation policy is invalid")
 	}
 	if err != nil && !isRepositoryKeyNotFound(err) {
 		return nil, err
@@ -41,15 +56,15 @@ func (s *SigningService) authorizeSigningOperation(ctx context.Context, keyID st
 	allowed := keyPolicy.AllowedSigningOperations
 	if len(allowed) == 0 {
 		emitSigningDenial(ctx, s.audit, signingDenial(keyID, descriptor, SigningDenialMissingAllowlist))
-		return faults.NewCode(faults.PolicyDenied, faults.SigningOperationNotAllowed, "signing operation is not explicitly allowed")
+		return signingOperationDenied("signing operation is not explicitly allowed")
 	}
 	if err := s.catalog.ValidateAllowlist(allowed); err != nil {
 		emitSigningDenial(ctx, s.audit, signingDenial(keyID, descriptor, SigningDenialInvalidPolicyRecord))
-		return faults.NewCode(faults.PolicyDenied, faults.SigningOperationNotAllowed, "stored signing operation policy is invalid")
+		return signingOperationDenied("stored signing operation policy is invalid")
 	}
 	if !s.catalog.Allows(allowed, descriptor.Operation) {
 		emitSigningDenial(ctx, s.audit, signingDenial(keyID, descriptor, SigningDenialOperationMismatch))
-		return faults.NewCode(faults.PolicyDenied, faults.SigningOperationNotAllowed, "signing operation is not allowed")
+		return signingOperationDenied("signing operation is not allowed")
 	}
 	return nil
 }

@@ -54,6 +54,9 @@ func NewRegistry(catalog *signingops.Catalog, descriptors []OperationDescriptor)
 		if descriptor.NewRequest == nil || descriptor.Validate == nil || descriptor.Execute == nil {
 			return nil, faults.Newf(faults.Internal, "operation %q is missing required callbacks", descriptor.Route)
 		}
+		if _, err := newOperationRequest(descriptor); err != nil {
+			return nil, faults.Newf(faults.Internal, "operation %q has an invalid request factory: %v", descriptor.Route, err)
+		}
 		if _, exists := out.byRoute[descriptor.Route]; exists {
 			return nil, faults.Newf(faults.Internal, "duplicate operation route %q", descriptor.Route)
 		}

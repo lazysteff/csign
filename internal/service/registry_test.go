@@ -50,6 +50,28 @@ func TestRegistryRejectsCatalogEntriesWithoutDescriptors(t *testing.T) {
 	require.ErrorContains(t, err, "catalog has 17 entries")
 }
 
+func TestRegistryRejectsInvalidRequestFactories(t *testing.T) {
+	catalog := signingops.MustNew([]v1.SigningOperationCapability{{Route: "route", Operation: "test_operation"}})
+	tests := []struct {
+		name    string
+		factory func() any
+	}{
+		{name: "nil", factory: func() any { return nil }},
+		{name: "typed nil", factory: func() any { return (*v1.BaseSignRequest)(nil) }},
+		{name: "missing key id", factory: func() any { return &struct{}{} }},
+		{name: "panic", factory: func() any { panic("broken factory") }},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			descriptor := testDescriptor("route")
+			descriptor.NewRequest = test.factory
+			_, err := NewRegistry(catalog, []OperationDescriptor{descriptor})
+			require.Equal(t, faults.Internal, faults.KindOf(err))
+			require.ErrorContains(t, err, "invalid request factory")
+		})
+	}
+}
+
 func testDescriptor(route string) OperationDescriptor {
 	return OperationDescriptor{
 		SigningOperationCapability: v1.SigningOperationCapability{Route: route, Operation: "test_operation"},

@@ -54,12 +54,16 @@ func TestHandleVersionIncludesSupportedRoutes(t *testing.T) {
 func TestSigningRegistrationsMatchAuthoritativeCatalog(t *testing.T) {
 	backend := New(nil)
 	require.Same(t, backend.catalog, backend.registry.Catalog())
-	registered := make(map[string]pathRegistration, len(backend.routes))
+	registered := make(map[string]pathRegistration)
 	for _, registration := range backend.routes {
+		if !registration.Signing {
+			continue
+		}
 		registered[registration.PublicRoute] = registration
 	}
 
 	entries := backend.catalog.Entries()
+	require.Len(t, registered, len(entries))
 	for _, entry := range entries {
 		registration, ok := registered[entry.Route]
 		require.True(t, ok, entry.Route)

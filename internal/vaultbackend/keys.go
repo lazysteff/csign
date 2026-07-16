@@ -59,7 +59,7 @@ func (b *Backend) handleUpdateKeyPolicy(ctx context.Context, req *logical.Reques
 	if !payload.HasPolicy() {
 		return nil, mapError(faults.New(faults.Invalid, "policy is required"))
 	}
-	key, err := b.keyService(req.Storage).SetPolicy(ctx, fieldString(d, "key_id"), payload.Policy.ToPolicy())
+	key, err := b.keyService(req.Storage).SetPolicy(ctx, fieldString(d, "key_id"), payload.Policy)
 	if err != nil {
 		return nil, mapError(err)
 	}

@@ -53,10 +53,14 @@ func TestStructuredPolicyConversionCoversEveryFieldWithoutAliasing(t *testing.T)
 			field.SetBool(true)
 		}
 	}
+	policy.AdditionalPolicyContext = map[string]string{"legacy": "opaque"}
 
 	structured := StructuredPolicyFromPolicy(policy)
-	roundTrip := structured.ToPolicy()
-	require.Equal(t, policy, roundTrip)
+	require.Nil(t, structured.AdditionalPolicyContext)
+	roundTrip := structured.Clone()
+	want := policy.Clone()
+	want.AdditionalPolicyContext = nil
+	require.Equal(t, want, roundTrip)
 
 	structured.AllowedNetworks[0] = "changed"
 	require.Equal(t, "value", policy.AllowedNetworks[0])

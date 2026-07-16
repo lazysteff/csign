@@ -92,7 +92,7 @@ Replaces the structured, enforced policy fields attached to an existing key. Thi
 
 Request type: `UpdateKeyPolicyRequest`
 
-The nested `policy` member has type `StructuredPolicy`. It deliberately excludes opaque application metadata.
+The nested `policy` member uses the canonical `Policy` fields (`StructuredPolicy` is a compatibility alias). The update decoder deliberately rejects opaque application metadata.
 
 ```json
 {
