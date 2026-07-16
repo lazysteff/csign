@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.1.0 - 2026-07-16
+
+Harden and simplify the mandatory signing-operation policy architecture.
+
+- consolidated route and operation identities behind the single immutable signing-operation catalog
+- validated descriptor request factories and their typed key-reference contract during startup
+- made missing, mismatched, or malformed runtime descriptors fail closed before request decoding, repository lookup, or custody access
+- required exact set equality between the catalog, descriptors, and registered Vault signing handlers during startup
+- split request construction, operation enforcement, and route-registration validation into focused modules
+- replaced the duplicated structured-policy model with a source-compatible alias of the canonical policy definition while retaining transport rejection of deprecated opaque context
+- tightened denial auditing so only canonical registered route identities are emitted and documented the distinct missing-key category
+- expanded startup-integrity and failure-path tests, including nil, malformed, and panicking request factories
+
+There are no new signing routes in this release. The forward-only `v1.0.0` operation-policy rollout and rollback requirements remain mandatory.
+
 ## v1.0.0 - 2026-07-16
 
 Make signing-operation policy mandatory across every key-backed signing route.
