@@ -40,12 +40,12 @@ func TestMapError(t *testing.T) {
 }
 
 func TestAdvancedDecodeErrorUsesStableRouteCode(t *testing.T) {
-	err := advancedDecodeError("v1/evm/erc4337/user-operations/sign", errors.New(`json: unknown field "raw_hash"`))
+	err := structuredDecodeError("v1/evm/erc4337/user-operations/sign", errors.New(`json: unknown field "raw_hash"`))
 	require.Equal(t, faults.Invalid, faults.KindOf(err))
 	require.Equal(t, faults.InvalidUserOperation, faults.CodeOf(err))
 
-	legacy := advancedDecodeError("v1/evm/transfers/legacy/sign", errors.New("bad legacy request"))
-	require.Empty(t, faults.CodeOf(legacy))
+	direct := structuredDecodeError("v1/evm/transfers/legacy/sign", errors.New("bad direct request"))
+	require.Empty(t, faults.CodeOf(direct))
 }
 
 func TestDecodeResponseKeyResponseAndFieldString(t *testing.T) {

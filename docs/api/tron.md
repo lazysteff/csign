@@ -18,4 +18,6 @@ Supported TRON signing routes:
 - `POST v1/tron/governance/vote_witness/sign`
 - `POST v1/tron/rewards/withdraw_balance/sign`
 
+Each route requires its exact canonical operation in `allowed_signing_operations`; see the [signing-operation registry](signing-operations.md#canonical-registry). A missing or empty list denies all TRON signing.
+
 `csign` validates deterministic request shape, owner authorization, configured policy caps where applicable, and protobuf signability only. It does not validate live chain state. Witness selection, vote allocation strategy, and reward-claim scheduling remain orchestration-layer responsibilities.

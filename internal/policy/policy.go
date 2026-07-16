@@ -67,7 +67,7 @@ func ValidateEVMLegacyTransfer(key domain.Key, req *v1.EVMLegacyTransferSignRequ
 	if _, err := chain.NormalizeAddress(v1.ChainFamilyEVM, req.To); err != nil {
 		return faults.Wrap(faults.Invalid, err)
 	}
-	if err := enforceBigCap(req.Value, key.Policy.MaxValue, "value"); err != nil {
+	if err := enforceEVMValueCap(req.Value, key.Policy.MaxValue); err != nil {
 		return err
 	}
 	if err := enforceBigCap(req.GasPrice, key.Policy.MaxGasPrice, "gas_price"); err != nil {
@@ -86,7 +86,7 @@ func ValidateEVMEIP1559Transfer(key domain.Key, req *v1.EVMEIP1559TransferSignRe
 	if _, err := chain.NormalizeAddress(v1.ChainFamilyEVM, req.To); err != nil {
 		return faults.Wrap(faults.Invalid, err)
 	}
-	if err := enforceBigCap(req.Value, key.Policy.MaxValue, "value"); err != nil {
+	if err := enforceEVMValueCap(req.Value, key.Policy.MaxValue); err != nil {
 		return err
 	}
 	if err := enforceGasLimit(req.GasLimit, key.Policy.MaxGasLimit); err != nil {
@@ -125,7 +125,7 @@ func ValidateEVMContractCall(key domain.Key, req *v1.EVMContractCallSignRequest)
 	if err := enforceSelectorAllowlist(key.Policy, selector); err != nil {
 		return err
 	}
-	if err := enforceBigCap(req.Value, key.Policy.MaxValue, "value"); err != nil {
+	if err := enforceEVMValueCap(req.Value, key.Policy.MaxValue); err != nil {
 		return err
 	}
 	if err := enforceGasLimit(req.GasLimit, key.Policy.MaxGasLimit); err != nil {
@@ -246,6 +246,24 @@ func enforceBigCap(value, capValue, field string) error {
 	}
 	if actual.Cmp(capInt) > 0 {
 		return faults.Newf(faults.PolicyDenied, "%s exceeds configured cap", field)
+	}
+	return nil
+}
+
+func enforceEVMValueCap(value, capValue string) error {
+	actual, err := enc.ParseEVMUint256(value)
+	if err != nil {
+		return faults.Newf(faults.Invalid, "parse value: %v", err)
+	}
+	if strings.TrimSpace(capValue) == "" {
+		return nil
+	}
+	capInt, err := enc.ParseEVMUint256(capValue)
+	if err != nil {
+		return faults.Newf(faults.Invalid, "parse value cap: %v", err)
+	}
+	if actual.Cmp(capInt) > 0 {
+		return faults.New(faults.PolicyDenied, "value exceeds configured cap")
 	}
 	return nil
 }

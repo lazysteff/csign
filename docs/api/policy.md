@@ -17,10 +17,11 @@ The `policy` object is attached to a key and enforced at sign time.
 | `max_priority_fee_per_gas` | string | EVM EIP-1559, ERC-4337, EIP-7702 type-4 | Maximum priority fee cap. |
 | `max_fee_limit` | int64 | TRON transfers | Maximum TRON fee limit on the existing TRX and TRC-20 routes. |
 | `allowed_token_contracts` | array of string | EVM contract calls, EIP-712, TRC-20 | Allowlisted contract addresses, including the EIP-712 verifying token contract. |
-| `allowed_selectors` | array of string | EVM contract calls, ERC-4337, EIP-7702 type-4, TRC-20 | Allowlisted first four bytes. For ERC-4337 this applies to the outer account `call_data`, not nested target calldata. |
-| `additional_policy_context` | object | deprecated legacy storage only | Returned for legacy key records but not enforced. `StructuredPolicy` excludes it, and the policy-update route preserves an existing value without allowing callers to create or modify it. |
-| `allowed_signing_operations` | array of string | advanced EVM | Required operation allowlist: `evm_eip712_typed`, `evm_erc4337_user_operation`, `evm_eip7702_authorization`, and/or `evm_eip7702_transaction`. |
-| `allowed_eip712_schemas` | array of string | EIP-712 | Required schema allowlist. Currently only `eip2612-permit-v1` is supported. |
+| `allowed_selectors` | array of string | EVM contract calls, ERC-4337, EIP-7702 type-4, TRC-20 | Allowlisted first four decoded bytes. For ERC-4337 this applies to the outer account `call_data`, not nested target calldata. |
+| `additional_policy_context` | object | deprecated stored records only | Returned for older key records but not enforced. `StructuredPolicy` excludes it, and the policy-update route preserves an existing value without allowing callers to create or modify it. |
+| `allowed_signing_operations` | array of string | every signing route | Exact canonical operation allowlist. Missing, nil, or empty is valid deny-all. See the [complete registry](signing-operations.md#canonical-registry). |
+| `allowed_eip712_schemas` | array of string | EIP-712 | Required schema allowlist. Current IDs include `eip2612-permit-v1` and `verifying-paymaster-approval-v1`; discover the compiled set through `v1/version`. |
+| `allowed_eip712_verifying_contracts` | array of address | registered EIP-712 schemas that use a dedicated verifying-contract policy | Required verifying-contract allowlist for schemas such as Paymaster approvals. |
 | `allowed_erc4337_versions` | array of string | ERC-4337 | Required protocol allowlist. Currently `erc4337-v0.9`. |
 | `allowed_entry_points` | array of address | ERC-4337 | Required caller-selected EntryPoint allowlist. |
 | `allowed_account_implementations` | array of string | ERC-4337 | Required account implementation allowlist. Currently `simple-account`. |
@@ -29,7 +30,7 @@ The `policy` object is attached to a key and enforced at sign time.
 | `allow_eip7702_revocation` | bool | EIP-7702 | Allows zero-address delegate revocation. Defaults to false. |
 | `allow_eip7702_chain_id_zero` | bool | EIP-7702 | Allows wildcard authorization chain ID `"0"`. Defaults to false. |
 | `allowed_transaction_types` | array of string | EIP-7702 transaction | Required allowlist. Currently `eip7702-type-4`. |
-| `allowed_contract_destinations` | array of address | EIP-712, EIP-7702 transaction | Permit spender and type-4 destination allowlist. |
+| `allowed_contract_destinations` | array of address | ordinary EVM contract calls, EIP-712, EIP-7702 transaction | Contract-call/type-4 destination and Permit spender allowlist. |
 | `max_authorization_list_entries` | uint64 | EIP-7702 transaction | Required non-zero maximum authorization-list length. Zero denies type-4 signing. |
 
 Current enforcement rules:
@@ -37,19 +38,22 @@ Current enforcement rules:
 - Sign requests fail if the key is disabled.
 - `source_address` must match the stored key address.
 - TRON owner-based resource, governance, and reward requests use `owner_address`, which must match the stored key address.
-- EVM contract calls require non-empty `data`.
+- Every key-backed signing request requires its exact registered operation in `allowed_signing_operations`; missing and empty lists deny all signing.
+- Operation strings use exact canonical comparison. Policy writes reject unknown, case/whitespace variants, and duplicates. A corrupted stored list denies all signing even if it also contains the matching operation.
+- EVM contract calls require a destination and at least four decoded calldata bytes. A missing destination cannot create a contract through this route.
 - TRC-20 signing is limited to the `transfer(address,uint256)` selector.
 - TRON owner-based routes validate only deterministic structural fields, owner authorization, and signability, not live chain state.
 - `VoteWitnessContract` signing enforces the protocol maximum of 30 submitted vote entries and rejects duplicate normalized witness addresses as a deterministic API constraint. It does not enforce witness allowlists or business vote caps.
-- Advanced EVM operations are deny-by-default. Empty `allowed_signing_operations`, `allowed_networks`, `allowed_chain_ids`, or any required operation-specific allowlist denies the request. The only chain-ID exception is an EIP-7702 authorization using `"0"` when `allow_eip7702_chain_id_zero` is explicitly true.
-- Empty advanced policy fields do not remove access to legacy routes; legacy validators retain their existing semantics.
+- Typed-data, account-abstraction, and authorization operations additionally default-deny when `allowed_networks`, `allowed_chain_ids`, or a required operation-specific allowlist is empty. The only chain-ID exception is an EIP-7702 authorization using `"0"` when `allow_eip7702_chain_id_zero` is explicitly true.
 - EIP-712 Permit additionally requires the schema, verifying token contract, spender, and value to satisfy policy.
 - ERC-4337 additionally requires the protocol, EntryPoint, account implementation, and signing schema to satisfy policy. An EIP-7702 initialization delegate is checked when present. Fee/gas caps cover account, pre-verification, and Paymaster gas fields. When selectors are configured, calldata shorter than four bytes is denied rather than treated as an allowlist bypass.
 - EIP-7702 authorization additionally enforces delegate, revocation, and wildcard-chain policy.
 - EIP-7702 type-4 signing requires `eip7702-type-4`, an allowed destination, a non-zero authorization-list maximum, allowed delegates, and all configured value/gas/fee/selector caps.
 - Policy denials currently return HTTP `400` through Vault, not `403`.
 
-### Complete advanced-EVM policy example
+Operation enforcement runs after syntactic key-ID validation and key metadata lookup, but before route-specific validation and any custody-material resolution. See [Signing-operation policy](signing-operations.md) for corruption handling, audit categories, the Paymaster control-key profile, and the forward-only rollout/rollback procedure.
+
+### Complete structured-EVM policy example
 
 ```json
 {
@@ -84,7 +88,7 @@ Current enforcement rules:
 }
 ```
 
-For an existing key, wrap this object in `{"policy": ...}` and submit it to `POST v1/key-policy/:key_id`. Structured policy fields are replaced in full; the operation is not a merge. Deprecated legacy `additional_policy_context` is outside this contract and, if already stored, remains unchanged.
+For an existing key, wrap this object in `{"policy": ...}` and submit it to `POST v1/key-policy/:key_id`. Structured policy fields are replaced in full; the operation is not a merge. Deprecated `additional_policy_context` is outside this contract and, if already stored, remains unchanged.
 
 The example intentionally configures `allowed_selectors`, so it denies the empty ERC-4337 and type-4 calldata shown in earlier wire-shape examples. Omit that optional cap or supply an allowed outer selector for those operations.
 
@@ -122,7 +126,7 @@ Repeat the exact sign or inspection path for each capability a caller needs. Do 
 
 ## Custody and live-chain boundaries
 
-All advanced sign routes use the existing custody abstraction:
+All sign routes use the same custody abstraction:
 
 - `mvp` keys are generated or imported by the plugin and stored in its Vault-backed logical storage.
 - `pkcs11` key records contain a public key and `external_signer_ref`. The deployment must inject a compatible external resolver; this repository does not ship a turnkey PKCS#11 runtime integration.

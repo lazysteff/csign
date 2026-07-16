@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/chain-signer/chain-signer/internal/signingops"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	"github.com/stretchr/testify/require"
 )
@@ -16,6 +17,7 @@ func TestHandleVersionIncludesSupportedRoutes(t *testing.T) {
 	var payload v1.VersionResponse
 	require.NoError(t, decode(resp.Data, &payload))
 	require.Equal(t, registeredPublicRoutes(backend.routes), payload.SupportedRoutes)
+	require.Equal(t, backend.registry.OperationCapabilities(), payload.SupportedSigningOperations)
 	require.Equal(t, []string{
 		"v1/evm/contracts/eip1559/sign",
 		"v1/evm/eip712/sign",
@@ -47,4 +49,40 @@ func TestHandleVersionIncludesSupportedRoutes(t *testing.T) {
 	}, payload.SupportedRoutes)
 	require.Equal(t, v1.EIP712SchemaEIP2612Permit, payload.SupportedEIP712Schemas[0].ID)
 	require.Equal(t, []string{v1.ERC4337ProtocolV09}, payload.SupportedERC4337ProtocolVersions)
+}
+
+func TestSigningRegistrationsMatchAuthoritativeCatalog(t *testing.T) {
+	backend := New(nil)
+	require.Same(t, backend.catalog, backend.registry.Catalog())
+	registered := make(map[string]string)
+	for _, registration := range backend.routes {
+		if registration.SigningOperation == "" {
+			continue
+		}
+		registered[registration.PublicRoute] = registration.SigningOperation
+	}
+
+	entries := backend.catalog.Entries()
+	require.Len(t, registered, len(entries))
+	for _, entry := range entries {
+		require.Equal(t, entry.Operation, registered[entry.Route], entry.Route)
+	}
+	require.Len(t, backend.registry.Routes(), len(entries))
+}
+
+func TestBackendStartupFailsForIncompleteCatalog(t *testing.T) {
+	catalog := signingops.MustNew([]v1.SigningOperationCapability{{Route: "v1/test/sign", Operation: "test_operation"}})
+	backend, err := newBackendWithCatalog(nil, catalog)
+	require.Error(t, err)
+	require.Nil(t, backend)
+}
+
+func TestBackendStartupFailsForExtraCatalogEntry(t *testing.T) {
+	entries := signingops.Default().Entries()
+	entries = append(entries, v1.SigningOperationCapability{Route: "v1/test/sign", Operation: "test_operation"})
+	catalog := signingops.MustNew(entries)
+
+	backend, err := newBackendWithCatalog(nil, catalog)
+	require.Error(t, err)
+	require.Nil(t, backend)
 }

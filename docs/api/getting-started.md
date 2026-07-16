@@ -20,13 +20,13 @@ curl \
   "${VAULT_ADDR}/v1/chain-signer/v1/version"
 ```
 
-Example response body:
+Abridged example response body (the operation catalog below shows two of the registered entries):
 
 ```json
 {
   "data": {
     "api_version": "v1",
-    "build_version": "v0.6.0",
+    "build_version": "v1.0.0",
     "supported_routes": [
       "v1/evm/contracts/eip1559/sign",
       "v1/evm/eip712/sign",
@@ -55,6 +55,16 @@ Example response body:
       "v1/tron/transfers/trx/sign",
       "v1/verify",
       "v1/version"
+    ],
+    "supported_signing_operations": [
+      {
+        "route": "v1/evm/transfers/legacy/sign",
+        "operation": "evm_transfer_legacy"
+      },
+      {
+        "route": "v1/evm/transfers/eip1559/sign",
+        "operation": "evm_transfer_eip1559"
+      }
     ],
     "supported_eip712_schemas": [
       {
@@ -106,6 +116,7 @@ curl \
   "policy": {
     "allowed_networks": ["ethereum-sepolia"],
     "allowed_chain_ids": [11155111],
+    "allowed_signing_operations": ["evm_transfer_eip1559"],
     "max_value": "1000000000000000000",
     "max_gas_limit": 250000,
     "max_fee_per_gas": "2000000000",
@@ -132,6 +143,7 @@ Example response body:
     "policy": {
       "allowed_networks": ["ethereum-sepolia"],
       "allowed_chain_ids": [11155111],
+      "allowed_signing_operations": ["evm_transfer_eip1559"],
       "max_value": "1000000000000000000",
       "max_gas_limit": 250000,
       "max_fee_per_gas": "2000000000",

@@ -12,26 +12,32 @@ import (
 	"github.com/chain-signer/chain-signer/internal/keyid"
 	"github.com/chain-signer/chain-signer/internal/policy"
 	"github.com/chain-signer/chain-signer/internal/repository"
+	"github.com/chain-signer/chain-signer/internal/signingops"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 )
 
 type KeyService struct {
-	repo repository.KeyRepository
-	now  func() time.Time
+	repo    repository.KeyRepository
+	catalog *signingops.Catalog
+	now     func() time.Time
 }
 
-func NewKeyService(repo repository.KeyRepository, now func() time.Time) *KeyService {
+func NewKeyService(repo repository.KeyRepository, catalog *signingops.Catalog, now func() time.Time) *KeyService {
 	if now == nil {
 		now = time.Now
 	}
 	return &KeyService{
-		repo: repo,
-		now:  now,
+		repo:    repo,
+		catalog: catalog,
+		now:     now,
 	}
 }
 
 func (s *KeyService) Create(ctx context.Context, req v1.CreateKeyRequest) (*domain.Key, error) {
 	if err := policy.ValidateCreateKeyRequest(req); err != nil {
+		return nil, err
+	}
+	if err := policy.ValidateStoredPolicy(s.catalog, req.Policy); err != nil {
 		return nil, err
 	}
 
@@ -141,11 +147,14 @@ func (s *KeyService) SetPolicy(ctx context.Context, keyID string, newPolicy v1.P
 	if err := keyid.Validate(keyID); err != nil {
 		return nil, err
 	}
+	if err := policy.ValidateStoredPolicy(s.catalog, newPolicy); err != nil {
+		return nil, err
+	}
 	key, err := s.readValidated(ctx, keyID)
 	if err != nil {
 		return nil, err
 	}
-	// The structured update protocol cannot set opaque legacy context. Preserve
+	// The structured update protocol cannot set deprecated opaque context. Preserve
 	// any context already stored on older keys while replacing enforced fields.
 	newPolicy = newPolicy.Clone()
 	newPolicy.AdditionalPolicyContext = maps.Clone(key.Policy.AdditionalPolicyContext)

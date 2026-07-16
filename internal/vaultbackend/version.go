@@ -16,6 +16,7 @@ func (b *Backend) handleVersion(_ context.Context, _ *logical.Request, _ *framew
 		APIVersion:                           v1.APIVersion,
 		BuildVersion:                         version.Version,
 		SupportedRoutes:                      registeredPublicRoutes(b.routes),
+		SupportedSigningOperations:           b.registry.OperationCapabilities(),
 		SupportedEIP712Schemas:               schemas,
 		SupportedERC4337ProtocolVersions:     protocols,
 		SupportedAccountImplementations:      accounts,

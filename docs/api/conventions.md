@@ -69,14 +69,15 @@ Response type: `VersionResponse`
 | `api_version` | string | Wire contract version. Currently `v1`. |
 | `build_version` | string | Plugin build identifier. |
 | `supported_routes` | array of string | Lexicographically sorted public mount-relative routes exposed by the plugin. |
-| `supported_eip712_schemas` | array of `EIP712SchemaCapability` | Registered schema ID, version, fixed primary type, and signature encoding. Currently `eip2612-permit-v1`, version `1`, primary type `Permit`, encoding `rsv-v27`. |
+| `supported_signing_operations` | array of `SigningOperationCapability` | Canonical registered signing route and exact policy operation identifier. This describes compiled support, not Vault ACL access, per-key enablement, external custody availability, or deployment readiness. |
+| `supported_eip712_schemas` | array of `EIP712SchemaCapability` | Registered schema ID, version, fixed primary type, and signature encoding, including ERC-2612 Permit and verifying-Paymaster approval schemas. |
 | `supported_erc4337_protocol_versions` | array of string | Supported UserOperation protocol identifiers. Currently `erc4337-v0.9`. |
 | `supported_account_implementations` | array of `ERC4337AccountCapability` | Account implementation/version, compatible protocols, signing schemas, and signature encoding. |
 | `supported_account_signing_schemas` | array of string | Supported account signature behavior identifiers. Currently `simple-account-eip712-v1`. |
 | `supported_eip7702_authorization_schemas` | array of string | Supported authorization hashing/encoding schemas. Currently `eip7702-v1`. |
 | `supported_eip7702_transaction_types` | array of `EIP7702TransactionCapability` | Supported transaction capability ID and numeric envelope type. Currently `eip7702-type-4`, type `4`. |
 
-Callers should check both `supported_routes` and the relevant versioned capability. A route name alone does not identify schema or account-signing behavior.
+Callers should check `supported_signing_operations` and the relevant versioned protocol capability. The operation mapping is the authoritative policy vocabulary; a route name alone does not identify schema or account-signing behavior.
 
 ## Data conventions
 
@@ -84,13 +85,13 @@ Callers should check both `supported_routes` and the relevant versioned capabili
 - `custody_mode` must be `mvp` or `pkcs11`.
 - EVM addresses are hex addresses. The plugin normalizes them before comparison.
 - TRON addresses are Base58 addresses.
-- Legacy numeric string fields such as `value`, `gas_price`, `max_fee_per_gas`, and TRC-20 `amount` accept decimal values. The legacy parser also accepts `0x`-prefixed hex strings.
-- Every wide protocol quantity on the advanced EVM routes is a canonical base-10 string. It must contain only digits and must not contain a sign, whitespace, a hexadecimal prefix, or a leading zero unless the entire value is `"0"`. Small discriminators such as `y_parity` and capability `number` remain JSON numbers.
-- Addresses in advanced EVM protocol requests must be exactly 20 bytes encoded as lowercase, `0x`-prefixed hexadecimal. Advanced byte strings, hashes, signatures, and signature scalars must also be lowercase and `0x`-prefixed; fixed-size values must have their exact encoded length.
-- EVM `KeyResponse.signer_address` values use checksum casing. Lowercase that value before reusing it as an address in an advanced EVM request.
-- Advanced EVM request types reject unknown JSON fields, including unknown nested domain, message, UserOperation, authorization, transaction, access-list, and policy-update fields.
+- Direct-transaction numeric strings such as EVM `value`, `gas_price`, and `max_fee_per_gas`, plus TRC-20 `amount`, accept decimal values and `0x`-prefixed hexadecimal. EVM transaction values are parsed as unsigned uint256 values; negative, malformed, or overflowing values are rejected.
+- Every wide protocol quantity on typed-data, account-abstraction, and authorization routes is a canonical base-10 string. It must contain only digits and must not contain a sign, whitespace, a hexadecimal prefix, or a leading zero unless the entire value is `"0"`. Small discriminators such as `y_parity` and capability `number` remain JSON numbers.
+- Addresses in these structured EVM requests must be exactly 20 bytes encoded as lowercase, `0x`-prefixed hexadecimal. Byte strings, hashes, signatures, and signature scalars must also be lowercase and `0x`-prefixed; fixed-size values must have their exact encoded length.
+- EVM `KeyResponse.signer_address` values use checksum casing. Lowercase that value before reusing it in a structured EVM request.
+- Structured EVM request types reject unknown JSON fields, including unknown nested domain, message, UserOperation, authorization, transaction, access-list, and policy-update fields.
 - `signed_payload` is always returned as a hex string and `payload_encoding` is currently always `hex`.
-- `request_id`, `approval_ref`, and `labels` are accepted on legacy sign requests as caller metadata. They are not echoed back in legacy `SignResponse` values. Advanced EVM requests require a non-empty `request_id`, and advanced responses echo it.
+- `request_id`, `approval_ref`, and `labels` are accepted on direct EOA and TRON transaction requests as caller metadata. They are not echoed back in `SignResponse` values. Typed-data, account-abstraction, and authorization requests require a non-empty `request_id`, and their responses echo it.
 - Key responses never include `private_key_hex`.
 - Hierarchical slash-delimited `key_id` values are supported end-to-end across create/import, read, list, status mutation, and signing.
 - A valid `key_id` is one or more non-empty slash-delimited segments.

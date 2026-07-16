@@ -37,7 +37,7 @@ func (b *Backend) handleRecover(_ context.Context, req *logical.Request, _ *fram
 func (b *Backend) handleVerifyEVMEIP712(_ context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
 	var payload v1.EVMEIP712VerifyRequest
 	if err := decode(req.Data, &payload); err != nil {
-		return nil, mapError(advancedDecodeError(routes.EVMEIP712Verify, err))
+		return nil, mapError(structuredDecodeError(routes.EVMEIP712Verify, err))
 	}
 	result, err := b.recovery.VerifyEVMEIP712(payload)
 	if err != nil {
@@ -49,7 +49,7 @@ func (b *Backend) handleVerifyEVMEIP712(_ context.Context, req *logical.Request,
 func (b *Backend) handleVerifyEVMUserOperation(_ context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
 	var payload v1.EVMUserOperationVerifyRequest
 	if err := decode(req.Data, &payload); err != nil {
-		return nil, mapError(advancedDecodeError(routes.EVMERC4337UserOperationVerify, err))
+		return nil, mapError(structuredDecodeError(routes.EVMERC4337UserOperationVerify, err))
 	}
 	result, err := b.recovery.VerifyEVMUserOperation(payload)
 	if err != nil {
@@ -61,7 +61,7 @@ func (b *Backend) handleVerifyEVMUserOperation(_ context.Context, req *logical.R
 func (b *Backend) handleVerifyEVMEIP7702Authorization(_ context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
 	var payload v1.EVMEIP7702AuthorizationVerifyRequest
 	if err := decode(req.Data, &payload); err != nil {
-		return nil, mapError(advancedDecodeError(routes.EVMEIP7702AuthorizationVerify, err))
+		return nil, mapError(structuredDecodeError(routes.EVMEIP7702AuthorizationVerify, err))
 	}
 	result, err := b.recovery.VerifyEVMEIP7702Authorization(payload)
 	if err != nil {
@@ -73,7 +73,7 @@ func (b *Backend) handleVerifyEVMEIP7702Authorization(_ context.Context, req *lo
 func (b *Backend) handleRecoverEVMEIP7702Transaction(_ context.Context, req *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
 	var payload v1.EVMEIP7702TransactionRecoverRequest
 	if err := decode(req.Data, &payload); err != nil {
-		return nil, mapError(advancedDecodeError(routes.EVMEIP7702TransactionRecover, err))
+		return nil, mapError(structuredDecodeError(routes.EVMEIP7702TransactionRecover, err))
 	}
 	result, err := b.recovery.RecoverEVMEIP7702Transaction(payload)
 	if err != nil {

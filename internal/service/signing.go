@@ -10,6 +10,7 @@ import (
 	"github.com/chain-signer/chain-signer/internal/faults"
 	"github.com/chain-signer/chain-signer/internal/keyid"
 	"github.com/chain-signer/chain-signer/internal/policy"
+	"github.com/chain-signer/chain-signer/internal/signingops"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 )
 
@@ -26,14 +27,18 @@ type SigningService struct {
 	policies policy.Evaluator
 	custody  CustodyResolver
 	registry OperationRegistry
+	catalog  *signingops.Catalog
+	audit    SigningAuditSink
 }
 
-func NewSigningService(keys KeyLookup, policies policy.Evaluator, custodyResolver CustodyResolver, registry OperationRegistry) *SigningService {
+func NewSigningService(keys KeyLookup, policies policy.Evaluator, custodyResolver CustodyResolver, registry OperationRegistry, audit SigningAuditSink) *SigningService {
 	return &SigningService{
 		keys:     keys,
 		policies: policies,
 		custody:  custodyResolver,
 		registry: registry,
+		catalog:  registry.Catalog(),
+		audit:    audit,
 	}
 }
 
@@ -56,7 +61,7 @@ func (s *SigningService) Sign(ctx context.Context, route string, request any) (*
 	}
 	typed, ok := result.(*v1.SignResponse)
 	if !ok {
-		return nil, faults.Newf(faults.Internal, "operation %q did not return a legacy sign response", route)
+		return nil, faults.Newf(faults.Internal, "operation %q did not return a transaction sign response", route)
 	}
 	return typed, nil
 }
@@ -66,6 +71,9 @@ func (s *SigningService) Execute(ctx context.Context, route string, request any)
 	if err != nil {
 		return nil, err
 	}
+	if err := s.validateOperationDescriptor(ctx, route, descriptor); err != nil {
+		return nil, err
+	}
 	keyID, err := keyIDFromRequest(request)
 	if err != nil {
 		return nil, err
@@ -73,15 +81,12 @@ func (s *SigningService) Execute(ctx context.Context, route string, request any)
 	if err := keyid.Validate(keyID); err != nil {
 		return nil, err
 	}
-	key, err := s.keys.GetKey(ctx, keyID)
+	key, err := s.loadSigningKey(ctx, keyID, descriptor)
 	if err != nil {
-		if isRepositoryKeyNotFound(err) {
-			return nil, faults.Newf(faults.NotFound, "key %q was not found", keyID)
-		}
 		return nil, err
 	}
-	if key == nil {
-		return nil, faults.Newf(faults.NotFound, "key %q was not found", keyID)
+	if err := s.authorizeSigningOperation(ctx, keyID, descriptor, key.Policy); err != nil {
+		return nil, err
 	}
 	if err := s.policies.Validate(*key, request, descriptor.Validate); err != nil {
 		return nil, err
@@ -108,8 +113,8 @@ func (s *SigningService) Execute(ctx context.Context, route string, request any)
 	}
 	result, err := descriptor.Execute(ctx, material, request)
 	if err != nil {
-		if isAdvancedSignRoute(route) {
-			return nil, classifyAdvancedExecutionError(err)
+		if isStructuredEVMSignRoute(route) {
+			return nil, classifyStructuredEVMExecutionError(err)
 		}
 		return nil, faults.Wrap(faults.Invalid, err)
 	}

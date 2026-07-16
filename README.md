@@ -38,7 +38,7 @@ All application-facing signing is typed. There is no generic raw-hash, arbitrary
 2. Mount it at a path such as `chain-signer/`.
 3. Create a key bound to a chain family and an optional policy.
 4. Call a typed `/v1/.../sign` endpoint with structured transaction fields.
-5. Use `/v1/verify` or `/v1/recover` for legacy transaction inspection, or the dedicated EIP-712, ERC-4337, and EIP-7702 inspection routes for structured verification and recovery.
+5. Use `/v1/verify` or `/v1/recover` for direct EOA/TRON transaction inspection, or the dedicated EIP-712, ERC-4337, and EIP-7702 inspection routes for structured verification and recovery.
 
 Detailed HTTP API reference: [docs/API.md](docs/API.md)
 
@@ -49,7 +49,7 @@ Detailed HTTP API reference: [docs/API.md](docs/API.md)
 
 This repository includes the external signer abstraction and conformance coverage for that flow. It does not ship a turnkey PKCS#11 runtime integration module.
 
-The advanced EVM operations use the same custody abstraction as existing routes. An external implementation must supply both the public key and a valid secp256k1 digest signature. CSign canonicalizes low-S signatures, determines recovery parity, checks that the custody public key matches the stored key, and verifies the produced artifact before returning it. The shipped plugin executable supports `mvp` directly; `pkcs11` remains an integration point that must be wired by the embedding deployment.
+Typed-data, account-abstraction, and authorization operations use the same custody abstraction as direct transaction routes. An external implementation must supply both the public key and a valid secp256k1 digest signature. CSign canonicalizes low-S signatures, determines recovery parity, checks that the custody public key matches the stored key, and verifies the produced artifact before returning it. The shipped plugin executable supports `mvp` directly; `pkcs11` remains an integration point that must be wired by the embedding deployment.
 
 ## Vault paths
 
@@ -83,7 +83,7 @@ The advanced EVM operations use the same custody abstraction as existing routes.
 
 Hierarchical slash-delimited `key_id` values are supported end-to-end. A valid `key_id` is one or more non-empty `/`-delimited segments such as `gateway/tron/hot/main` or `orgs/123/signing/default`.
 
-`GET v1/keys/<key_id>` is greedy over the remaining path, `POST v1/key-status/<key_id>` changes activation, `POST v1/key-policy/<key_id>` replaces the structured, enforced policy fields, and `LIST v1/keys` returns full hierarchical key IDs. Policy updates reject opaque `additional_policy_context`; any such deprecated context already stored on a legacy key is preserved server-side but cannot be created or changed through the update route. Invalid key forms such as leading slash, trailing slash, empty segments, `.` segments, and `..` segments are rejected. Clients must validate decoded values and escape path segments individually; percent-encoding must not be used to give `/` alternate semantics.
+`GET v1/keys/<key_id>` is greedy over the remaining path, `POST v1/key-status/<key_id>` changes activation, `POST v1/key-policy/<key_id>` replaces the structured, enforced policy fields, and `LIST v1/keys` returns full hierarchical key IDs. Policy updates reject opaque `additional_policy_context`; any such deprecated context already stored on an older key is preserved server-side but cannot be created or changed through the update route. Invalid key forms such as leading slash, trailing slash, empty segments, `.` segments, and `..` segments are rejected. Clients must validate decoded values and escape path segments individually; percent-encoding must not be used to give `/` alternate semantics.
 
 ## Build
 
@@ -114,7 +114,7 @@ This first runs `make verify`. If tests or golangci-lint fail, no release artifa
 ### Publish a release
 
 ```bash
-VERSION=v0.6.0 make publish-release
+VERSION=v1.0.0 make publish-release
 ```
 
 This is the supported release path. It requires a clean `main` worktree, verifies the changelog entry, runs the gated artifact build, creates and pushes the annotated tag, and lets the GitHub Actions release workflow publish the GitHub release. The workflow runs the same verification gate again before uploading release assets.
@@ -199,6 +199,7 @@ curl \
   "policy": {
     "allowed_networks": ["ethereum-sepolia"],
     "allowed_chain_ids": [11155111],
+    "allowed_signing_operations": ["evm_transfer_eip1559"],
     "max_value": "1000000000000000000",
     "max_gas_limit": 250000,
     "max_fee_per_gas": "2000000000",
@@ -276,20 +277,20 @@ JSON
 
 Use `recover` when you want the recovered signer, operation, and transaction hash back without enforcing an expectation.
 
-### Advanced EVM signing
+### Typed-data, account-abstraction, and authorization signing
 
-Advanced EVM signing is deliberately narrow, versioned, and default-deny:
+Structured EVM signing is deliberately narrow, versioned, and default-deny:
 
-- EIP-712: schema `eip2612-permit-v1`, schema version `1`, fixed primary type `Permit`
+- EIP-712 typed data: fixed `eip2612-permit-v1` and `verifying-paymaster-approval-v1` schemas
 - ERC-4337: protocol `erc4337-v0.9`, account implementation `simple-account` version `0.9`, signing schema `simple-account-eip712-v1`, signature encoding `rsv-v27`
 - EIP-7702 authorization: schema `eip7702-v1`
 - EIP-7702 transaction: capability `eip7702-type-4`, type number `4`
 
-Read `v1/version` before signing to discover the exact compiled capabilities. A key must explicitly allow the operation, network, chain ID, and each operation-specific schema, implementation, EntryPoint, delegate, destination, or transaction type.
+Read `v1/version` before signing to discover the exact compiled capabilities. Every key-backed signing route requires its exact operation in `allowed_signing_operations`; structured operations additionally require the network, chain ID, and each operation-specific schema, implementation, EntryPoint, delegate, destination, or transaction type.
 
-Advanced requests reject unknown fields and use canonical decimal quantities plus lowercase `0x`-encoded protocol values. CSign reconstructs and verifies every artifact locally; it does not query chain state, allocate nonces, simulate account validation, or broadcast transactions.
+Structured protocol requests reject unknown fields and use canonical decimal quantities plus lowercase `0x`-encoded protocol values. CSign reconstructs and verifies every artifact locally; it does not query chain state, allocate nonces, simulate account validation, or broadcast transactions.
 
-See the focused references for [protocol requests and responses](docs/api/evm.md), [policy and custody boundaries](docs/api/policy.md), and [wire conventions](docs/api/conventions.md).
+See the focused references for [protocol requests and responses](docs/api/evm.md), the [mandatory signing-operation policy and rollout](docs/api/signing-operations.md), [policy and custody boundaries](docs/api/policy.md), and [wire conventions](docs/api/conventions.md).
 
 ### TRON requests
 
@@ -322,14 +323,14 @@ The new resource routes intentionally use `owner_address` instead of `source_add
 
 The new routes are forward-only. There is no migration, alias route, compatibility layer for older request shapes, or support for previously submitted signing requests. Recovery remains stateless and may classify any structurally valid signed TRON payload for a supported contract type, including payloads created outside `csign`.
 
-`/v1/version` returns `supported_routes`, a lexicographically sorted list of public callable mount-relative routes, plus typed, versioned advanced-EVM protocol capabilities. Callers can use it to detect whether a mounted plugin supports a route and the exact signing schema behind it.
+`/v1/version` returns `supported_routes`, the canonical `supported_signing_operations` route-to-operation catalog, and typed protocol capabilities. These fields describe compiled support, not Vault ACL access or per-key authorization.
 
 ## Use from Go
 
 The repository ships with a small Vault client package at `github.com/chain-signer/chain-signer/pkg/client`.
 The client is organized by capability through `Keys`, `Signing`, and `Payloads`.
 
-Advanced methods are `Keys.SetPolicy`, `Signing.SignEVMEIP712`, `Signing.SignEVMUserOperation`, `Signing.SignEVMEIP7702Authorization`, `Signing.SignEVMEIP7702Transaction`, `Payloads.VerifyEVMEIP712`, `Payloads.VerifyEVMUserOperation`, `Payloads.VerifyEVMEIP7702Authorization`, and `Payloads.RecoverEVMEIP7702Transaction`. `Keys.SetPolicy` accepts `v1.StructuredPolicy`, which contains only typed, enforced policy fields. `Client.Version` returns typed protocol capabilities used to select compatible schema and protocol identifiers. Classified advanced errors are exposed as `*client.APIError`; `client.ErrorCode(err)` returns a typed `v1.ErrorCode` for comparison with constants such as `v1.ErrorUnsupportedEIP712Schema`.
+Structured-operation methods are `Keys.SetPolicy`, `Signing.SignEVMEIP712`, `Signing.SignEVMUserOperation`, `Signing.SignEVMEIP7702Authorization`, `Signing.SignEVMEIP7702Transaction`, `Payloads.VerifyEVMEIP712`, `Payloads.VerifyEVMUserOperation`, `Payloads.VerifyEVMEIP7702Authorization`, and `Payloads.RecoverEVMEIP7702Transaction`. `Keys.SetPolicy` accepts `v1.StructuredPolicy`, which contains only typed, enforced policy fields. `Client.Version` returns typed protocol capabilities used to select compatible schema and protocol identifiers. Classified errors are exposed as `*client.APIError`; `client.ErrorCode(err)` returns a typed `v1.ErrorCode` for comparison with constants such as `v1.ErrorUnsupportedEIP712Schema`.
 
 ```go
 package main

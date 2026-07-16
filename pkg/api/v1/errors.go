@@ -1,8 +1,8 @@
 package v1
 
-// ErrorCode is the stable machine-readable classification used by advanced
-// operation failures. Human-readable error messages are not part of this
-// compatibility contract.
+// ErrorCode is the stable machine-readable classification used by signing and
+// structured-protocol failures. Human-readable messages are not part of this
+// contract.
 type ErrorCode string
 
 const (

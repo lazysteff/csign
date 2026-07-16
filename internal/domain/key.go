@@ -49,7 +49,8 @@ func NormalizeCustodyMode(value string) string {
 }
 
 func NormalizeSelector(value string) string {
-	return strings.ToLower(strings.TrimPrefix(strings.TrimSpace(value), "0x"))
+	value = strings.ToLower(strings.TrimSpace(value))
+	return strings.TrimPrefix(value, "0x")
 }
 
 func GenerateKeyID() (string, error) {

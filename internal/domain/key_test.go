@@ -10,6 +10,7 @@ func TestNormalizeHelpers(t *testing.T) {
 	require.Equal(t, "evm", NormalizeChainFamily(" EVM "))
 	require.Equal(t, "pkcs11", NormalizeCustodyMode(" PKCS11 "))
 	require.Equal(t, "a9059cbb", NormalizeSelector(" 0xA9059CBB "))
+	require.Equal(t, "a9059cbb", NormalizeSelector(" 0XA9059CBB "))
 }
 
 func TestGenerateKeyID(t *testing.T) {

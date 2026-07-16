@@ -48,6 +48,19 @@ func ParseBigInt(value string) (*big.Int, error) {
 	return out, nil
 }
 
+// ParseEVMUint256 accepts the existing decimal or 0x-prefixed quantity syntax
+// used by ordinary EVM routes while enforcing the protocol's uint256 range.
+func ParseEVMUint256(value string) (*big.Int, error) {
+	parsed, err := ParseBigInt(value)
+	if err != nil {
+		return nil, err
+	}
+	if parsed.Sign() < 0 || parsed.BitLen() > 256 {
+		return nil, fmt.Errorf("numeric value is outside the uint256 range")
+	}
+	return parsed, nil
+}
+
 // ParseEVMAddress accepts only the canonical lowercase wire representation
 // used by the structured EVM API.
 func ParseEVMAddress(field, value string, allowZero bool) (common.Address, error) {

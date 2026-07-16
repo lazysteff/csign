@@ -10,6 +10,7 @@ import (
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/faults"
 	"github.com/chain-signer/chain-signer/internal/repository"
+	"github.com/chain-signer/chain-signer/internal/signingops"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
@@ -19,7 +20,7 @@ func TestKeyServiceCreateAndSetActive(t *testing.T) {
 	ctx := context.Background()
 	now := time.Date(2026, 4, 10, 12, 0, 0, 0, time.UTC)
 	repo := newMemoryKeyRepository()
-	service := NewKeyService(repo, func() time.Time { return now })
+	service := NewKeyService(repo, signingops.Default(), func() time.Time { return now })
 
 	key, err := service.Create(ctx, v1.CreateKeyRequest{
 		KeyID:            "evm-key",
@@ -47,7 +48,7 @@ func TestKeyServiceRejectsInvalidKeyIDsBeforeRepositoryAccess(t *testing.T) {
 
 	t.Run("create", func(t *testing.T) {
 		repo := newMemoryKeyRepository()
-		service := NewKeyService(repo, time.Now)
+		service := NewKeyService(repo, signingops.Default(), time.Now)
 
 		_, err := service.Create(ctx, v1.CreateKeyRequest{
 			KeyID:            "a//b",
@@ -62,7 +63,7 @@ func TestKeyServiceRejectsInvalidKeyIDsBeforeRepositoryAccess(t *testing.T) {
 
 	t.Run("read", func(t *testing.T) {
 		repo := newMemoryKeyRepository()
-		service := NewKeyService(repo, time.Now)
+		service := NewKeyService(repo, signingops.Default(), time.Now)
 
 		_, err := service.Read(ctx, "/bad")
 		require.Equal(t, faults.Invalid, faults.KindOf(err))
@@ -71,7 +72,7 @@ func TestKeyServiceRejectsInvalidKeyIDsBeforeRepositoryAccess(t *testing.T) {
 
 	t.Run("set active", func(t *testing.T) {
 		repo := newMemoryKeyRepository()
-		service := NewKeyService(repo, time.Now)
+		service := NewKeyService(repo, signingops.Default(), time.Now)
 
 		_, err := service.SetActive(ctx, "a/./b", false)
 		require.Equal(t, faults.Invalid, faults.KindOf(err))
@@ -81,7 +82,7 @@ func TestKeyServiceRejectsInvalidKeyIDsBeforeRepositoryAccess(t *testing.T) {
 }
 
 func TestKeyServiceReadMissingKey(t *testing.T) {
-	service := NewKeyService(newMemoryKeyRepository(), time.Now)
+	service := NewKeyService(newMemoryKeyRepository(), signingops.Default(), time.Now)
 	_, err := service.Read(context.Background(), "missing")
 	require.Equal(t, faults.NotFound, faults.KindOf(err))
 }
@@ -96,7 +97,7 @@ func TestKeyServiceSetPolicyPreservesLegacyAdditionalPolicyContext(t *testing.T)
 			AdditionalPolicyContext: map[string]string{"workflow": "legacy"},
 		},
 	}
-	service := NewKeyService(repo, time.Now)
+	service := NewKeyService(repo, signingops.Default(), time.Now)
 
 	updated, err := service.SetPolicy(ctx, "legacy-policy-key", v1.Policy{
 		AllowedNetworks: []string{"new-network"},
@@ -111,7 +112,7 @@ func TestKeyServiceSetPolicyPreservesLegacyAdditionalPolicyContext(t *testing.T)
 func TestKeyServiceDoesNotAliasMutableRequestOrRepositoryState(t *testing.T) {
 	ctx := context.Background()
 	repo := newMemoryKeyRepository()
-	service := NewKeyService(repo, time.Now)
+	service := NewKeyService(repo, signingops.Default(), time.Now)
 	request := v1.CreateKeyRequest{
 		KeyID:            "isolated-key",
 		ChainFamily:      v1.ChainFamilyEVM,
@@ -140,6 +141,32 @@ func TestKeyServiceDoesNotAliasMutableRequestOrRepositoryState(t *testing.T) {
 	stored, err = service.Read(ctx, "isolated-key")
 	require.NoError(t, err)
 	require.Equal(t, []string{"network-b"}, stored.Policy.AllowedNetworks)
+}
+
+func TestKeyServiceRejectsInvalidOperationPoliciesBeforePersistence(t *testing.T) {
+	ctx := context.Background()
+	repo := newMemoryKeyRepository()
+	service := NewKeyService(repo, signingops.Default(), time.Now)
+
+	_, err := service.Create(ctx, v1.CreateKeyRequest{
+		KeyID:            "invalid-policy",
+		ChainFamily:      v1.ChainFamilyEVM,
+		CustodyMode:      v1.CustodyModeMVP,
+		ImportPrivateKey: "0x4c0883a69102937d6231471b5dbb6204fe512961708279f3c8dfe8d6b6f5f5ad",
+		Policy:           v1.Policy{AllowedSigningOperations: []string{"unknown"}},
+	})
+	require.Equal(t, faults.Invalid, faults.KindOf(err))
+	require.Zero(t, repo.getCalls)
+	require.Zero(t, repo.putCalls)
+
+	repo.keys["existing"] = domain.Key{ID: "existing"}
+	_, err = service.SetPolicy(ctx, "existing", v1.Policy{AllowedSigningOperations: []string{
+		v1.OperationEVMTransferLegacy,
+		v1.OperationEVMTransferLegacy,
+	}})
+	require.Equal(t, faults.Invalid, faults.KindOf(err))
+	require.Zero(t, repo.getCalls)
+	require.Zero(t, repo.putCalls)
 }
 
 type memoryKeyRepository struct {

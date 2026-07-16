@@ -13,9 +13,9 @@ The adapter maps internal failures to Vault HTTP responses like this:
 | `409` | duplicate key creation |
 | `500` | unexpected internal failure |
 
-Classified advanced-operation errors are prefixed in Vault's error string as `[error_code] message`. The Go client preserves the underlying Vault error in `*client.APIError`; call `client.ErrorCode(err)` to extract the typed `v1.ErrorCode`. Compare it with constants such as `v1.ErrorUnsupportedEIP712Schema`; the function returns an empty code for legacy or otherwise unclassified errors.
+Classified errors are prefixed in Vault's error string as `[error_code] message`. The Go client preserves the underlying Vault error in `*client.APIError`; call `client.ErrorCode(err)` to extract the typed `v1.ErrorCode`. Compare it with constants such as `v1.ErrorSigningOperationNotAllowed` or `v1.ErrorUnsupportedEIP712Schema`; the function returns an empty code for unclassified errors.
 
-Codes currently emitted by advanced request decoding, validation, policy enforcement, and artifact inspection include:
+Codes currently emitted by signing-operation enforcement and structured request decoding, validation, policy enforcement, and artifact inspection include:
 
 - `unsupported_eip712_schema`
 - `invalid_eip712_domain`

@@ -1,6 +1,19 @@
 # Changelog
 
-## Unreleased
+## v1.0.0 - 2026-07-16
+
+Make signing-operation policy mandatory across every key-backed signing route.
+
+- added one authoritative route-to-operation catalog shared by registration, policy persistence, runtime enforcement, capability discovery, and tests
+- changed `allowed_signing_operations` to default-deny for direct EOA transactions, EIP-712, ERC-4337, EIP-7702, and every TRON signing operation
+- rejected unknown, non-canonical, and duplicate operation identifiers on policy writes; corrupted stored operation policies fail closed
+- added `supported_signing_operations` to `v1/version`
+- hardened ordinary EVM transaction values to unsigned uint256 parsing before custody access
+- added payload-free denial audit events and category metrics without making audit availability a signing dependency
+- added canonical semantic policy comparison for secure complete-policy rollout verification
+- documented the complete operation registry, Paymaster pause/unpause control profile, custody boundary, rollout, and emergency rollback procedure
+
+This is a forward-only breaking policy change. Every deployed signing key must receive a complete explicit operation allowlist before or together with this release. Rolling back to an older plugin while signing remains enabled can restore permissive ordinary-route behavior; disable affected keys or revoke signing ACLs before any emergency rollback.
 
 ## v0.7.0 - 2026-07-14
 

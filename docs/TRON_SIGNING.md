@@ -4,7 +4,9 @@ This document describes the TRON signing routes exposed by `chain-signer`. See t
 
 For all TRON routes, `csign` validates request shape, typed fields, configured policy caps where applicable, owner authorization, and protobuf signability only. It does not validate live chain state. The TRON node or the caller's orchestrator remains responsible for stateful checks such as account existence, witness existence and eligibility, available TRON Power, current rewards, reward-claim timing restrictions, guard representative restrictions, delegable balance, receiver eligibility, unfreeze-entry limits, expired-unfreeze availability, unstake maturity, and expiration freshness against current chain time.
 
-The `owner_address` routes are forward-only additions. There is no backward compatibility layer, migration, alias route, or support for previously submitted signing requests. Payload recovery is stateless: `recover` and `verify` may classify any structurally valid signed TRON payload for a newly supported contract type, including payloads created outside `csign`.
+The `owner_address` routes are forward-only additions. There is no migration or alias route for previously submitted signing requests. Payload recovery is stateless: `recover` and `verify` may classify any structurally valid signed TRON payload for a newly supported contract type, including payloads created outside `csign`.
+
+Every route on this page requires its exact identifier in `allowed_signing_operations`. Missing or empty operation policy denies all signing; the [authoritative registry and rollout rules](api/signing-operations.md) apply equally to TRON and EVM keys.
 
 For verified voting and reward semantics, protobuf `support` handling, and source links, see [TRON Governance And Reward Semantics](TRON_GOVERNANCE_REWARDS.md).
 
@@ -202,7 +204,7 @@ This route is reward claiming only. It is distinct from Stake 2.0 `withdraw_expi
 
 ## Non-goals And Boundaries
 
-- Legacy Stake 1.0 `FreezeBalanceContract` and `UnfreezeBalanceContract`
+- Obsolete Stake 1.0 `FreezeBalanceContract` and `UnfreezeBalanceContract`
 - `CancelAllUnfreezeV2`
 - signer-side expiration freshness windows
 - read/query helpers for delegable or withdrawable balances

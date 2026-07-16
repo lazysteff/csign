@@ -41,6 +41,7 @@ Notes:
 
 - The response never includes `private_key_hex`.
 - Duplicate `key_id` values return `409`.
+- A missing or empty `allowed_signing_operations` policy is valid but intentionally denies every signing route.
 
 ### `LIST v1/keys`
 
@@ -83,7 +84,7 @@ Request type: `UpdateKeyStatusRequest`
 
 Response type: `KeyResponse`
 
-The legacy `POST v1/keys/:key_id/status` route has been removed.
+The former `POST v1/keys/:key_id/status` route has been removed.
 
 ### `POST v1/key-policy/:key_id`
 
@@ -109,11 +110,13 @@ The nested `policy` member has type `StructuredPolicy`. It deliberately excludes
 
 Response type: `KeyResponse`
 
-This operation is replacement, not merge. The top-level `policy` member is required and must not be `null`; `{"policy": {}}` is the explicit way to clear all structured policy fields. Structured fields omitted from the submitted `policy` are removed from the stored policy, so include every legacy and advanced guardrail that must remain active. The request rejects unknown fields, including `additional_policy_context`. For backward compatibility, any deprecated `additional_policy_context` already stored on a legacy key is retained server-side unchanged; it cannot be created, replaced, or cleared through this route.
+This operation is replacement, not merge. The top-level `policy` member is required and must not be `null`; `{"policy": {}}` explicitly replaces the policy with a deny-all operation policy. Include every network, chain, destination, selector, value, gas, fee, protocol, delegate, and other guardrail that must remain active. Unknown, non-canonical, or duplicate operation identifiers reject the complete write. The request rejects unknown fields, including `additional_policy_context`; an already stored deprecated value remains server-managed and cannot be created, replaced, or cleared through this route.
 
-## Legacy sign request base fields
+See [Signing-operation policy](signing-operations.md) for the complete registry and replacement/rollout rules.
 
-Legacy EVM transfer/contract-call and TRON transfer endpoints share these base fields through `BaseSignRequest`.
+## Direct signing request base fields
+
+Direct EOA transfer/contract-call and TRON transfer endpoints share these base fields through `BaseSignRequest`.
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -125,9 +128,9 @@ Legacy EVM transfer/contract-call and TRON transfer endpoints share these base f
 | `approval_ref` | string | no | Approval system reference. |
 | `source_address` | string | yes | Must match the stored signer address for the key. |
 
-The new TRON Stake 2.0 resource routes do not use `BaseSignRequest`. They use the same legacy correlation and workflow fields plus `owner_address` instead of `source_address`. This is intentional and matches TRON stake/delegation contract terminology. It is not a migration of the older TRX or TRC-20 request shapes.
+TRON Stake 2.0 resource routes do not use `BaseSignRequest`. They use the same correlation and workflow fields plus `owner_address` instead of `source_address`. This matches TRON stake/delegation contract terminology.
 
-Legacy sign endpoints return `SignResponse`:
+Direct transaction endpoints return `SignResponse`:
 
 | Field | Type | Meaning |
 | --- | --- | --- |

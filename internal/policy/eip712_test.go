@@ -16,7 +16,7 @@ func TestEIP712PolicyDefaultsToDenyAndRequiresExplicitAllows(t *testing.T) {
 
 	err := ValidateEVMEIP712(key, &request)
 	require.Equal(t, faults.PolicyDenied, faults.KindOf(err))
-	require.ErrorContains(t, err, "signing operation is not explicitly allowed")
+	require.ErrorContains(t, err, "network is not explicitly allowed")
 
 	key.Policy = v1.Policy{
 		AllowedSigningOperations:    []string{v1.OperationEVMEIP712Typed},

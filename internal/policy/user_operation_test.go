@@ -14,7 +14,7 @@ func TestUserOperationPolicyDefaultsToDenyAndRequiresCompatibilityAllows(t *test
 
 	err := ValidateEVMUserOperation(key, &request)
 	require.Equal(t, faults.PolicyDenied, faults.KindOf(err))
-	require.ErrorContains(t, err, "signing operation is not explicitly allowed")
+	require.ErrorContains(t, err, "network is not explicitly allowed")
 
 	key.Policy = v1.Policy{
 		AllowedSigningOperations:      []string{v1.OperationEVMERC4337UserOperation},

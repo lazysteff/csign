@@ -32,7 +32,7 @@ func StructuredPolicyFromPolicy(policy Policy) StructuredPolicy {
 }
 
 // ToPolicy converts the structured update contract to the full stored policy.
-// The service restores any legacy AdditionalPolicyContext already on the key.
+// The service restores any deprecated AdditionalPolicyContext already on the key.
 func (p StructuredPolicy) ToPolicy() Policy {
 	return (Policy{
 		AllowedNetworks:                 p.AllowedNetworks,

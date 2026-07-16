@@ -66,7 +66,7 @@ func mapError(err error) error {
 	}
 }
 
-func advancedDecodeError(route string, err error) error {
+func structuredDecodeError(route string, err error) error {
 	switch route {
 	case routes.EVMEIP712Sign, routes.EVMEIP712Verify:
 		return faults.NewCode(faults.Invalid, faults.InvalidEIP712Message, err.Error())

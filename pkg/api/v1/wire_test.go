@@ -45,9 +45,11 @@ func TestCapabilityWireFixtureUsesNestedTypedRecords(t *testing.T) {
 	var response VersionResponse
 	require.NoError(t, json.Unmarshal([]byte(`{
 		"api_version":"v1","build_version":"v1.0.0",
+		"supported_signing_operations":[{"route":"v1/evm/contracts/eip1559/sign","operation":"evm_contract_call_eip1559"}],
 		"supported_account_implementations":[{"id":"simple-account","version":"0.9","protocol_versions":["erc4337-v0.9"],"signing_schemas":["simple-account-eip712-v1"],"signature_encoding":"rsv-v27"}],
 		"supported_eip7702_transaction_types":[{"id":"eip7702-type-4","number":4}]
 	}`), &response))
+	require.Equal(t, OperationEVMContractEIP1559, response.SupportedSigningOperations[0].Operation)
 	require.Equal(t, []string{ERC4337ProtocolV09}, response.SupportedAccountImplementations[0].ProtocolVersions)
 	require.Equal(t, uint8(4), response.SupportedEIP7702TransactionTypes[0].Number)
 }

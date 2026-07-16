@@ -39,6 +39,11 @@ func TestConformance_MVPEVMOperations(t *testing.T) {
 		CustodyMode:      v1.CustodyModeMVP,
 		ImportPrivateKey: testPrivHex,
 		Policy: v1.Policy{
+			AllowedSigningOperations: []string{
+				v1.OperationEVMTransferLegacy,
+				v1.OperationEVMTransferEIP1559,
+				v1.OperationEVMContractEIP1559,
+			},
 			AllowedNetworks:      []string{testEVMNetwork},
 			AllowedChainIDs:      []int64{testEVMChainID},
 			MaxValue:             "1000000000000000000",
@@ -165,6 +170,9 @@ func TestConformance_PKCS11StyleExternalSigner(t *testing.T) {
 		CustodyMode:       v1.CustodyModePKCS11,
 		PublicKeyHex:      enc.EncodeHex(ethcrypto.FromECDSAPub(&privateKey.PublicKey)),
 		ExternalSignerRef: "hsm-1",
+		Policy: v1.Policy{
+			AllowedSigningOperations: []string{v1.OperationEVMTransferEIP1559},
+		},
 	})
 	require.NotContains(t, createRaw, "private_key_hex")
 
@@ -204,6 +212,9 @@ func TestConformance_HierarchicalKeyIDRoundTripsAcrossManagementAndSigning(t *te
 		ChainFamily:      v1.ChainFamilyEVM,
 		CustodyMode:      v1.CustodyModeMVP,
 		ImportPrivateKey: testPrivHex,
+		Policy: v1.Policy{
+			AllowedSigningOperations: []string{v1.OperationEVMTransferLegacy},
+		},
 	})
 
 	readResp, _ := readKey(t, ctx, b, storage, keyID)
@@ -258,9 +269,10 @@ func TestConformance_NegativeCases(t *testing.T) {
 		CustodyMode:      v1.CustodyModeMVP,
 		ImportPrivateKey: testPrivHex,
 		Policy: v1.Policy{
-			AllowedNetworks: []string{testEVMNetwork},
-			AllowedChainIDs: []int64{testEVMChainID},
-			MaxValue:        "1",
+			AllowedSigningOperations: []string{v1.OperationEVMTransferLegacy},
+			AllowedNetworks:          []string{testEVMNetwork},
+			AllowedChainIDs:          []int64{testEVMChainID},
+			MaxValue:                 "1",
 		},
 	})
 

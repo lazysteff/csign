@@ -8,12 +8,17 @@ import (
 	"strings"
 
 	"github.com/chain-signer/chain-signer/internal/domain"
+	"github.com/chain-signer/chain-signer/internal/policy"
+	"github.com/chain-signer/chain-signer/internal/signingops"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 
 const keyPrefix = "keys/"
 
-var ErrKeyNotFound = errors.New("key not found")
+var (
+	ErrKeyNotFound         = errors.New("key not found")
+	ErrInvalidPolicyRecord = errors.New("invalid stored key or policy record")
+)
 
 type KeyRepository interface {
 	GetKey(context.Context, string) (*domain.Key, error)
@@ -23,13 +28,17 @@ type KeyRepository interface {
 
 type VaultKeyRepository struct {
 	storage logical.Storage
+	catalog *signingops.Catalog
 }
 
-func NewVaultKeyRepository(storage logical.Storage) *VaultKeyRepository {
-	return &VaultKeyRepository{storage: storage}
+func NewVaultKeyRepository(storage logical.Storage, catalog *signingops.Catalog) *VaultKeyRepository {
+	return &VaultKeyRepository{storage: storage, catalog: catalog}
 }
 
 func (r *VaultKeyRepository) PutKey(ctx context.Context, key domain.Key) error {
+	if err := policy.ValidateStoredPolicy(r.catalog, key.Policy); err != nil {
+		return fmt.Errorf("validate key %q policy: %w", key.ID, err)
+	}
 	entry, err := logical.StorageEntryJSON(keyPath(key.ID), key)
 	if err != nil {
 		return fmt.Errorf("encode key %q: %w", key.ID, err)
@@ -50,7 +59,7 @@ func (r *VaultKeyRepository) GetKey(ctx context.Context, keyID string) (*domain.
 	}
 	var key domain.Key
 	if err := entry.DecodeJSON(&key); err != nil {
-		return nil, fmt.Errorf("decode key %q: %w", keyID, err)
+		return nil, fmt.Errorf("%w: decode key %q: %w", ErrInvalidPolicyRecord, keyID, err)
 	}
 	return &key, nil
 }

@@ -33,7 +33,8 @@ func TestEIP7702AuthorizationPolicyRequiresDelegateRevocationAndWildcardOptIn(t 
 	}
 	key := advancedPolicyKey(v1.Policy{})
 	err := ValidateEVMEIP7702Authorization(key, &request)
-	require.Equal(t, faults.SigningOperationNotAllowed, faults.CodeOf(err))
+	require.Equal(t, faults.PolicyDenied, faults.KindOf(err))
+	require.ErrorContains(t, err, "network is not explicitly allowed")
 
 	key.Policy = v1.Policy{
 		AllowedSigningOperations: []string{v1.OperationEVMEIP7702Authorization},

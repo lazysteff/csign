@@ -42,4 +42,4 @@ Difference from `verify`:
 - `recover` returns the recovered signer and operation.
 - `verify` additionally recomputes `matches_expected` against the provided expectations.
 
-The legacy routes above remain transaction-payload endpoints. EIP-712, ERC-4337, and EIP-7702 use the dedicated structured inspection routes documented in the [EVM API](evm.md).
+The direct EOA and TRON routes remain transaction-payload endpoints. EIP-712, ERC-4337, and EIP-7702 use the dedicated structured inspection routes documented in the [EVM API](evm.md).

@@ -5,6 +5,9 @@ import (
 	"testing"
 
 	"github.com/chain-signer/chain-signer/internal/domain"
+	"github.com/chain-signer/chain-signer/internal/faults"
+	"github.com/chain-signer/chain-signer/internal/signingops"
+	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
 )
@@ -12,7 +15,7 @@ import (
 func TestVaultKeyRepositoryPutGetList(t *testing.T) {
 	ctx := context.Background()
 	storage := new(logical.InmemStorage)
-	repo := NewVaultKeyRepository(storage)
+	repo := NewVaultKeyRepository(storage, signingops.Default())
 
 	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "key-b"}))
 	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "key-a"}))
@@ -33,7 +36,7 @@ func TestVaultKeyRepositoryPutGetList(t *testing.T) {
 func TestVaultKeyRepositoryListNestedKeyIDs(t *testing.T) {
 	ctx := context.Background()
 	storage := new(logical.InmemStorage)
-	repo := NewVaultKeyRepository(storage)
+	repo := NewVaultKeyRepository(storage, signingops.Default())
 
 	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "gateway/tron/main/hot"}))
 	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "gateway/ton/signing/default"}))
@@ -51,7 +54,7 @@ func TestVaultKeyRepositoryListNestedKeyIDs(t *testing.T) {
 func TestVaultKeyRepositoryDecodeError(t *testing.T) {
 	ctx := context.Background()
 	storage := new(logical.InmemStorage)
-	repo := NewVaultKeyRepository(storage)
+	repo := NewVaultKeyRepository(storage, signingops.Default())
 
 	require.NoError(t, storage.Put(ctx, &logical.StorageEntry{
 		Key:   keyPath("broken"),
@@ -59,5 +62,24 @@ func TestVaultKeyRepositoryDecodeError(t *testing.T) {
 	}))
 
 	_, err := repo.GetKey(ctx, "broken")
+	require.ErrorIs(t, err, ErrInvalidPolicyRecord)
 	require.ErrorContains(t, err, "decode key")
+}
+
+func TestVaultKeyRepositoryRejectsInvalidOperationPolicies(t *testing.T) {
+	ctx := context.Background()
+	storage := new(logical.InmemStorage)
+	repo := NewVaultKeyRepository(storage, signingops.Default())
+
+	for _, allowed := range [][]string{
+		{"unknown"},
+		{v1.OperationEVMTransferLegacy, v1.OperationEVMTransferLegacy},
+		{" evm_transfer_legacy"},
+	} {
+		err := repo.PutKey(ctx, domain.Key{ID: "invalid", Policy: v1.Policy{AllowedSigningOperations: allowed}})
+		require.Equal(t, faults.Invalid, faults.KindOf(err))
+		entry, readErr := storage.Get(ctx, keyPath("invalid"))
+		require.NoError(t, readErr)
+		require.Nil(t, entry)
+	}
 }

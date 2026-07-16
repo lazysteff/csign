@@ -40,7 +40,7 @@ func EqualAddress(left, right string) bool {
 
 func SignLegacyTransfer(ctx context.Context, material custody.Material, req *v1.EVMLegacyTransferSignRequest) (*v1.SignResponse, error) {
 	to := ethcommon.HexToAddress(req.To)
-	value, err := enc.ParseBigInt(req.Value)
+	value, err := enc.ParseEVMUint256(req.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func SignLegacyTransfer(ctx context.Context, material custody.Material, req *v1.
 
 func SignEIP1559Transfer(ctx context.Context, material custody.Material, req *v1.EVMEIP1559TransferSignRequest) (*v1.SignResponse, error) {
 	to := ethcommon.HexToAddress(req.To)
-	value, err := enc.ParseBigInt(req.Value)
+	value, err := enc.ParseEVMUint256(req.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func SignEIP1559Transfer(ctx context.Context, material custody.Material, req *v1
 
 func SignContractCall(ctx context.Context, material custody.Material, req *v1.EVMContractCallSignRequest) (*v1.SignResponse, error) {
 	to := ethcommon.HexToAddress(req.To)
-	value, err := enc.ParseBigInt(req.Value)
+	value, err := enc.ParseEVMUint256(req.Value)
 	if err != nil {
 		return nil, err
 	}

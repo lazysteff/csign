@@ -15,7 +15,7 @@ func (b *Backend) handleSign(route string) framework.OperationFunc {
 			return nil, mapError(err)
 		}
 		if err := decode(req.Data, payload); err != nil {
-			return nil, mapError(advancedDecodeError(route, err))
+			return nil, mapError(structuredDecodeError(route, err))
 		}
 		result, err := signing.Execute(ctx, route, payload)
 		if err != nil {

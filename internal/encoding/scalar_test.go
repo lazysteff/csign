@@ -44,6 +44,22 @@ func TestParseBigIntRejectsEmptyAndInvalid(t *testing.T) {
 	require.ErrorContains(t, err, "invalid numeric value")
 }
 
+func TestParseEVMUint256(t *testing.T) {
+	maximum := new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
+	parsed, err := ParseEVMUint256(maximum.String())
+	require.NoError(t, err)
+	require.Equal(t, maximum, parsed)
+
+	hexValue, err := ParseEVMUint256("0x2a")
+	require.NoError(t, err)
+	require.Equal(t, int64(42), hexValue.Int64())
+
+	for _, value := range []string{"-1", new(big.Int).Lsh(big.NewInt(1), 256).String()} {
+		_, err := ParseEVMUint256(value)
+		require.ErrorContains(t, err, "uint256")
+	}
+}
+
 func TestParseEVMAddressRequiresCanonicalWireForm(t *testing.T) {
 	address, err := ParseEVMAddress("address", "0x1111111111111111111111111111111111111111", false)
 	require.NoError(t, err)

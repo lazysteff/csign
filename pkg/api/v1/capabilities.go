@@ -20,10 +20,18 @@ type EIP7702TransactionCapability struct {
 	Number uint8  `json:"number"`
 }
 
+// SigningOperationCapability reports a supported signing route's canonical
+// policy operation. It describes protocol support, not ACL or per-key access.
+type SigningOperationCapability struct {
+	Route     string `json:"route"`
+	Operation string `json:"operation"`
+}
+
 type VersionResponse struct {
 	APIVersion                           string                         `json:"api_version"`
 	BuildVersion                         string                         `json:"build_version"`
 	SupportedRoutes                      []string                       `json:"supported_routes,omitempty"`
+	SupportedSigningOperations           []SigningOperationCapability   `json:"supported_signing_operations,omitempty"`
 	SupportedEIP712Schemas               []EIP712SchemaCapability       `json:"supported_eip712_schemas,omitempty"`
 	SupportedERC4337ProtocolVersions     []string                       `json:"supported_erc4337_protocol_versions,omitempty"`
 	SupportedAccountImplementations      []ERC4337AccountCapability     `json:"supported_account_implementations,omitempty"`

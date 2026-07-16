@@ -17,8 +17,8 @@ type Policy struct {
 	MaxFeeLimit           int64    `json:"max_fee_limit,omitempty"`
 	AllowedTokenContracts []string `json:"allowed_token_contracts,omitempty"`
 	AllowedSelectors      []string `json:"allowed_selectors,omitempty"`
-	// Legacy compatibility: AdditionalPolicyContext is retained only for decoding
-	// and returning older key records. Structured policy updates do not accept it.
+	// Deprecated storage compatibility: AdditionalPolicyContext is retained only
+	// for decoding and returning older records. Structured updates do not accept it.
 	AdditionalPolicyContext         map[string]string `json:"additional_policy_context,omitempty"`
 	AllowedSigningOperations        []string          `json:"allowed_signing_operations,omitempty"`
 	AllowedEIP712Schemas            []string          `json:"allowed_eip712_schemas,omitempty"`

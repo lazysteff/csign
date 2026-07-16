@@ -21,6 +21,17 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 		CustodyMode:      v1.CustodyModeMVP,
 		ImportPrivateKey: testPrivHex,
 		Policy: v1.Policy{
+			AllowedSigningOperations: []string{
+				v1.OperationTRXTransfer,
+				v1.OperationTRC20Transfer,
+				v1.OperationTRONFreezeBalanceV2,
+				v1.OperationTRONUnfreezeBalanceV2,
+				v1.OperationTRONDelegateResource,
+				v1.OperationTRONUndelegateResource,
+				v1.OperationTRONWithdrawExpireUnfreeze,
+				v1.OperationTRONVoteWitness,
+				v1.OperationTRONWithdrawBalance,
+			},
 			AllowedNetworks: []string{testTRONNetwork},
 			MaxValue:        "1000000000",
 			MaxFeeLimit:     20000000,

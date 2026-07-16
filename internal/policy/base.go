@@ -40,9 +40,6 @@ func validateAdvancedBase(key domain.Key, chainFamily, network, requestID, signe
 		}
 		return faults.New(faults.Invalid, "expected signer address does not match key signer address")
 	}
-	if err := requireStringAllowed(key.Policy.AllowedSigningOperations, operation, "signing operation"); err != nil {
-		return err
-	}
 	if err := requireStringAllowed(key.Policy.AllowedNetworks, network, "network"); err != nil {
 		return err
 	}

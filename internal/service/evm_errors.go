@@ -10,7 +10,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
-func classifyAdvancedExecutionError(err error) error {
+func classifyStructuredEVMExecutionError(err error) error {
 	if err == nil {
 		return nil
 	}
@@ -79,7 +79,7 @@ func classifyType4InspectionError(err error) error {
 	}
 }
 
-func isAdvancedSignRoute(route string) bool {
+func isStructuredEVMSignRoute(route string) bool {
 	switch route {
 	case routes.EVMEIP712Sign,
 		routes.EVMERC4337UserOperationSign,

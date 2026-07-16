@@ -9,7 +9,7 @@ import (
 )
 
 // APIError preserves the Vault transport error while exposing a stable CSign
-// error code for new typed operations.
+// error code for classified signing and structured-protocol failures.
 type APIError struct {
 	Code v1.ErrorCode
 	Err  error
@@ -19,7 +19,7 @@ func (e *APIError) Error() string { return e.Err.Error() }
 func (e *APIError) Unwrap() error { return e.Err }
 
 // ErrorCode extracts a stable CSign error code, returning an empty string for
-// legacy errors that predate the coded error contract.
+// unclassified errors that predate the coded error contract.
 func ErrorCode(err error) v1.ErrorCode {
 	var typed *APIError
 	if errors.As(err, &typed) {

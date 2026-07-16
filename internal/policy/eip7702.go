@@ -66,7 +66,7 @@ func ValidateEVMEIP7702Transaction(key domain.Key, req *v1.EVMEIP7702Transaction
 			return err
 		}
 	}
-	if err := enforceBigCap(req.Value, key.Policy.MaxValue, "value"); err != nil {
+	if err := enforceEVMValueCap(req.Value, key.Policy.MaxValue); err != nil {
 		return err
 	}
 	gasLimit, _ := enc.ParseCanonicalUint64("gas_limit", req.GasLimit)
