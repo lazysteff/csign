@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.1.1 - 2026-07-19
+
+Refresh compatible transitive Go module dependencies.
+
+- updated `github.com/mattn/go-isatty` to `v0.0.23`
+- updated `github.com/petermattis/goid` to `v0.0.0-20260716134002-a9b348f0a2b9`
+- updated `google.golang.org/api` to `v0.289.0`
+- updated `google.golang.org/genproto/googleapis/api` and `google.golang.org/genproto/googleapis/rpc` to `v0.0.0-20260715232425-e75dac1f907d`
+- updated `google.golang.org/grpc` to `v1.82.1`
+
+There are no API or signing-policy changes in this release.
+
 ## v1.1.0 - 2026-07-16
 
 Harden and simplify the mandatory signing-operation policy architecture.

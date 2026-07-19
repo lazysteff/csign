@@ -26,7 +26,7 @@ Abridged example response body (the operation catalog below shows two of the reg
 {
   "data": {
     "api_version": "v1",
-    "build_version": "v1.1.0",
+    "build_version": "v1.1.1",
     "supported_routes": [
       "v1/evm/contracts/eip1559/sign",
       "v1/evm/eip712/sign",
