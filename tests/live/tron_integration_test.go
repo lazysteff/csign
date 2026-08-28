@@ -3,6 +3,7 @@
 package live_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"encoding/hex"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/chain-signer/chain-signer/internal/vaultbackend"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -120,6 +122,47 @@ func TestLiveTRONResourceBroadcasts(t *testing.T) {
 		})
 		require.NoError(t, broadcastSignedPayload(client, resp.SignedPayload))
 	})
+}
+
+func TestLiveTRONMemoTRC20Transfer(t *testing.T) {
+	cfg := loadLiveTRONConfig(t)
+	contract := requiredEnv(t, "TRON_LIVE_TRC20_CONTRACT")
+	amount := envOrDefault("TRON_LIVE_TRC20_AMOUNT", "1")
+	feeLimit := int64(100_000_000)
+	memo := []byte(envOrDefault("TRON_LIVE_TRC20_MEMO", "csign-nile-memo-🛰️"))
+
+	ctx := context.Background()
+	client := newLiveTRONClient(t, cfg)
+	backend, storage := newLiveBackend(t)
+	owner := createLiveTRONKey(t, ctx, backend, storage, "live-memo-owner", cfg.OwnerPrivateKey)
+	envelope := freshEnvelope(t, client, 60_000)
+	resp := signLiveTRON(t, ctx, backend, storage, "v1/tron/transfers/trc20/sign", v1.TRC20TransferSignRequest{
+		BaseSignRequest: v1.BaseSignRequest{
+			KeyID: owner.KeyID, ChainFamily: v1.ChainFamilyTRON, Network: cfg.Network,
+			RequestID: "trc20-memo-live", SourceAddress: owner.SignerAddress,
+		},
+		To: cfg.ReceiverAddress, TokenContract: contract, Amount: amount,
+		MemoHex: hex.EncodeToString(memo), FeeLimit: feeLimit,
+		RefBlockBytes: envelope.RefBlockBytes, RefBlockHash: envelope.RefBlockHash,
+		Timestamp: envelope.Timestamp, Expiration: envelope.Expiration,
+	})
+
+	signed := decodeSignedTRONPayload(t, resp.SignedPayload)
+	require.Equal(t, memo, signed.GetRawData().GetData())
+	require.NoError(t, broadcastSignedPayload(client, resp.SignedPayload))
+
+	var observed *core.Transaction
+	require.Eventually(t, func() bool {
+		var err error
+		observed, err = client.GetTransactionByIDCtx(ctx, strings.TrimPrefix(resp.TxHash, "0x"))
+		return err == nil && observed.GetRawData() != nil && bytes.Equal(observed.GetRawData().GetData(), memo)
+	}, 90*time.Second, 2*time.Second, "memo-bearing TRC20 transaction was not observed on Nile")
+	require.Equal(t, memo, observed.GetRawData().GetData())
+
+	require.Eventually(t, func() bool {
+		info, err := client.GetTransactionInfoByIDCtx(ctx, strings.TrimPrefix(resp.TxHash, "0x"))
+		return err == nil && len(info.GetId()) > 0 && info.GetResult() == core.TransactionInfo_SUCESS
+	}, 90*time.Second, 2*time.Second, "memo-bearing TRC20 transaction did not execute successfully on Nile")
 }
 
 func TestLiveTRONResourceNodeRejections(t *testing.T) {
@@ -244,6 +287,15 @@ func createLiveTRONKey(t *testing.T, ctx context.Context, backend *vaultbackend.
 		ChainFamily:      v1.ChainFamilyTRON,
 		CustodyMode:      v1.CustodyModeMVP,
 		ImportPrivateKey: privateKey,
+		Policy: v1.Policy{AllowedSigningOperations: []string{
+			v1.OperationTRXTransfer,
+			v1.OperationTRC20Transfer,
+			v1.OperationTRONFreezeBalanceV2,
+			v1.OperationTRONUnfreezeBalanceV2,
+			v1.OperationTRONDelegateResource,
+			v1.OperationTRONUndelegateResource,
+			v1.OperationTRONWithdrawExpireUnfreeze,
+		}},
 	}))
 	require.NoError(t, err)
 	return decodeLiveResponse[v1.KeyResponse](t, resp)
@@ -302,16 +354,31 @@ func freshEnvelope(t *testing.T, client *tronclient.GrpcClient, offsetMillis int
 }
 
 func broadcastSignedPayload(client *tronclient.GrpcClient, signedPayload string) error {
-	raw, err := hex.DecodeString(strings.TrimPrefix(signedPayload, "0x"))
+	tx, err := decodeTRONPayload(signedPayload)
 	if err != nil {
 		return err
 	}
-	var tx core.Transaction
-	if err := proto.Unmarshal(raw, &tx); err != nil {
-		return err
-	}
-	_, err = client.Broadcast(&tx)
+	_, err = client.Broadcast(tx)
 	return err
+}
+
+func decodeSignedTRONPayload(t *testing.T, signedPayload string) *core.Transaction {
+	t.Helper()
+	tx, err := decodeTRONPayload(signedPayload)
+	require.NoError(t, err)
+	return tx
+}
+
+func decodeTRONPayload(signedPayload string) (*core.Transaction, error) {
+	raw, err := hex.DecodeString(strings.TrimPrefix(signedPayload, "0x"))
+	if err != nil {
+		return nil, err
+	}
+	tx := new(core.Transaction)
+	if err := proto.Unmarshal(raw, tx); err != nil {
+		return nil, err
+	}
+	return tx, nil
 }
 
 func requiredEnv(t *testing.T, key string) string {

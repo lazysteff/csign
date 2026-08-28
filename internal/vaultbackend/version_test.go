@@ -49,6 +49,11 @@ func TestHandleVersionIncludesSupportedRoutes(t *testing.T) {
 	}, payload.SupportedRoutes)
 	require.Equal(t, v1.EIP712SchemaEIP2612Permit, payload.SupportedEIP712Schemas[0].ID)
 	require.Equal(t, []string{v1.ERC4337ProtocolV09}, payload.SupportedERC4337ProtocolVersions)
+	require.Equal(t, []v1.TRONMemoCapability{{
+		Encoding:            v1.TRONMemoEncodingHex,
+		MaxTransactionBytes: v1.TRONMaxTransactionBytes,
+		SigningOperations:   []string{v1.OperationTRXTransfer, v1.OperationTRC20Transfer},
+	}}, payload.SupportedTRONMemoCapabilities)
 }
 
 func TestSigningRegistrationsMatchAuthoritativeCatalog(t *testing.T) {

@@ -19,6 +19,10 @@ func TestVersionDecodesTypedResponse(t *testing.T) {
 				"supported_erc4337_protocol_versions":     []interface{}{v1.ERC4337ProtocolV09},
 				"supported_account_signing_schemas":       []interface{}{v1.ERC4337SimpleAccountSigningSchema},
 				"supported_eip7702_authorization_schemas": []interface{}{v1.EIP7702AuthorizationSchemaV1},
+				"supported_tron_memo_capabilities": []interface{}{map[string]interface{}{
+					"encoding": v1.TRONMemoEncodingHex, "max_transaction_bytes": v1.TRONMaxTransactionBytes,
+					"signing_operations": []interface{}{v1.OperationTRXTransfer, v1.OperationTRC20Transfer},
+				}},
 				"supported_account_implementations": []interface{}{map[string]interface{}{
 					"id": v1.ERC4337AccountSimpleAccount, "version": v1.ERC4337AccountSimpleAccountVersion,
 					"protocol_versions": []interface{}{v1.ERC4337ProtocolV09}, "signing_schemas": []interface{}{v1.ERC4337SimpleAccountSigningSchema},
@@ -42,6 +46,10 @@ func TestVersionDecodesTypedResponse(t *testing.T) {
 		ProtocolVersions: []string{v1.ERC4337ProtocolV09}, SigningSchemas: []string{v1.ERC4337SimpleAccountSigningSchema},
 		SignatureEncoding: v1.SignatureEncodingRSV27,
 	}}, resp.SupportedAccountImplementations)
+	require.Equal(t, []v1.TRONMemoCapability{{
+		Encoding: v1.TRONMemoEncodingHex, MaxTransactionBytes: v1.TRONMaxTransactionBytes,
+		SigningOperations: []string{v1.OperationTRXTransfer, v1.OperationTRC20Transfer},
+	}}, resp.SupportedTRONMemoCapabilities)
 }
 
 func TestVersionFailsOnEmptyResponse(t *testing.T) {

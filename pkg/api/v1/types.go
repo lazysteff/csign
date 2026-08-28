@@ -137,6 +137,7 @@ type TRXTransferSignRequest struct {
 	BaseSignRequest
 	To            string `json:"to"`
 	Amount        int64  `json:"amount"`
+	MemoHex       string `json:"memo_hex,omitempty"`
 	FeeLimit      int64  `json:"fee_limit"`
 	RefBlockBytes string `json:"ref_block_bytes"`
 	RefBlockHash  string `json:"ref_block_hash"`
@@ -150,6 +151,7 @@ type TRC20TransferSignRequest struct {
 	To            string `json:"to"`
 	TokenContract string `json:"token_contract"`
 	Amount        string `json:"amount"`
+	MemoHex       string `json:"memo_hex,omitempty"`
 	FeeLimit      int64  `json:"fee_limit"`
 	RefBlockBytes string `json:"ref_block_bytes"`
 	RefBlockHash  string `json:"ref_block_hash"`

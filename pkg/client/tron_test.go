@@ -62,6 +62,21 @@ func TestTRONResourceSigningUsesExpectedRoute(t *testing.T) {
 	require.Equal(t, "chain-signer/v1/tron/rewards/withdraw_balance/sign", logical.lastWritePath)
 }
 
+func TestTRONTransferClientForwardsMemoHex(t *testing.T) {
+	t.Parallel()
+
+	logical := &fakeLogical{writeSecret: &api.Secret{Data: map[string]interface{}{
+		"api_version": v1.APIVersion,
+	}}}
+	client := New(logical, "chain-signer")
+	_, err := client.Signing.SignTRXTransfer(context.Background(), v1.TRXTransferSignRequest{
+		MemoHex: "00ff",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "chain-signer/v1/tron/transfers/trx/sign", logical.lastWritePath)
+	require.Equal(t, "00ff", logical.lastWriteData["memo_hex"])
+}
+
 func TestTRONRequestBuildersDefaultChainFamily(t *testing.T) {
 	base := NewTRONOwnerSignRequestBase("tron-key", "tron-nile", "req-1", "TP4XxLr5K8NvL8nRc1rER6S1PqrgQ4QXbQ")
 	req := NewTRONDelegateResourceRequest(base, v1.TRONRawDataEnvelope{

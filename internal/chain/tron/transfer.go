@@ -44,6 +44,9 @@ func SignTRXTransfer(ctx context.Context, material custody.Material, req *v1.TRX
 	if err != nil {
 		return nil, err
 	}
+	if err := applyTransferMemo(tx, req.MemoHex); err != nil {
+		return nil, err
+	}
 	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationTRXTransfer, tx)
 }
 
@@ -93,6 +96,9 @@ func SignTRC20Transfer(ctx context.Context, material custody.Material, req *v1.T
 		req.FeeLimit,
 	)
 	if err != nil {
+		return nil, err
+	}
+	if err := applyTransferMemo(tx, req.MemoHex); err != nil {
 		return nil, err
 	}
 	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationTRC20Transfer, tx)

@@ -2,13 +2,17 @@ package conformance_test
 
 import (
 	"context"
+	"encoding/hex"
+	"strings"
 	"testing"
 
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/vaultbackend"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestConformance_MVPTRONOperations(t *testing.T) {
@@ -47,6 +51,13 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 	require.Contains(t, versionResp.SupportedRoutes, "v1/tron/resources/withdraw_expire_unfreeze/sign")
 	require.Contains(t, versionResp.SupportedRoutes, "v1/tron/governance/vote_witness/sign")
 	require.Contains(t, versionResp.SupportedRoutes, "v1/tron/rewards/withdraw_balance/sign")
+	require.Contains(t, versionResp.SupportedTRONMemoCapabilities, v1.TRONMemoCapability{
+		Encoding:            v1.TRONMemoEncodingHex,
+		MaxTransactionBytes: v1.TRONMaxTransactionBytes,
+		SigningOperations:   []string{v1.OperationTRXTransfer, v1.OperationTRC20Transfer},
+	})
+
+	trxMemo := append([]byte("TRX-zażółć"), 0x00, 0xff)
 
 	trxSign := signTRX(t, ctx, b, storage, v1.TRXTransferSignRequest{
 		BaseSignRequest: v1.BaseSignRequest{
@@ -58,6 +69,7 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 		},
 		To:            testTRONRecipient,
 		Amount:        10,
+		MemoHex:       hex.EncodeToString(trxMemo),
 		FeeLimit:      1000000,
 		RefBlockBytes: "a1b2",
 		RefBlockHash:  "0102030405060708",
@@ -74,6 +86,9 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 	require.True(t, trxRecover.MatchesExpected)
 	require.Equal(t, v1.OperationTRXTransfer, trxRecover.Operation)
 	require.Equal(t, trxSign.TxHash, trxRecover.TxHash)
+	require.Equal(t, trxMemo, decodeTRONPayload(t, trxSign.SignedPayload).GetRawData().GetData())
+
+	trc20Memo := []byte("TRC20-🛰️")
 
 	trc20Sign := signTRC20(t, ctx, b, storage, v1.TRC20TransferSignRequest{
 		BaseSignRequest: v1.BaseSignRequest{
@@ -86,6 +101,7 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 		To:            testTRONRecipient,
 		TokenContract: testTRONContract,
 		Amount:        "25",
+		MemoHex:       hex.EncodeToString(trc20Memo),
 		FeeLimit:      15000000,
 		RefBlockBytes: "a1b2",
 		RefBlockHash:  "0102030405060708",
@@ -102,6 +118,7 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 	})
 	require.True(t, trc20Verify.MatchesExpected)
 	require.Equal(t, v1.OperationTRC20Transfer, trc20Verify.Operation)
+	require.Equal(t, trc20Memo, decodeTRONPayload(t, trc20Sign.SignedPayload).GetRawData().GetData())
 
 	resourceEnvelope := v1.TRONRawDataEnvelope{
 		RefBlockBytes: "a1b2",
@@ -167,6 +184,44 @@ func TestConformance_MVPTRONOperations(t *testing.T) {
 		TRONOwnerSignRequestBase: tronOwnerBase(createResp.SignerAddress),
 		TRONRawDataEnvelope:      zeroFeeEnvelope,
 	}), createResp.SignerAddress, v1.OperationTRONWithdrawBalance)
+}
+
+func decodeTRONPayload(t *testing.T, payload string) *core.Transaction {
+	t.Helper()
+	raw, err := hex.DecodeString(strings.TrimPrefix(payload, "0x"))
+	require.NoError(t, err)
+	tx := new(core.Transaction)
+	require.NoError(t, proto.Unmarshal(raw, tx))
+	return tx
+}
+
+func TestConformance_TRONMemoValidation(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	b, storage := newTestBackend(t, nil)
+	created, _ := createKey(t, ctx, b, storage, v1.CreateKeyRequest{
+		KeyID: "tron-memo-validation", ChainFamily: v1.ChainFamilyTRON,
+		CustodyMode: v1.CustodyModeMVP, ImportPrivateKey: testPrivHex,
+		Policy: v1.Policy{AllowedSigningOperations: []string{v1.OperationTRXTransfer}},
+	})
+	request := v1.TRXTransferSignRequest{
+		BaseSignRequest: v1.BaseSignRequest{
+			KeyID: "tron-memo-validation", ChainFamily: v1.ChainFamilyTRON,
+			Network: testTRONNetwork, RequestID: testRequestID, SourceAddress: created.SignerAddress,
+		},
+		To: testTRONRecipient, Amount: 1, FeeLimit: 1_000_000,
+		RefBlockBytes: "a1b2", RefBlockHash: "0102030405060708",
+		Timestamp: 1_710_000_000_000, Expiration: 1_710_000_060_000,
+	}
+
+	request.MemoHex = "not-hex"
+	_, err := handle(t, ctx, b, storage, logical.UpdateOperation, "v1/tron/transfers/trx/sign", mustMap(t, request))
+	require.ErrorContains(t, err, "memo_hex")
+
+	request.MemoHex = strings.Repeat("00", v1.TRONMaxTransactionBytes+1)
+	_, err = handle(t, ctx, b, storage, logical.UpdateOperation, "v1/tron/transfers/trx/sign", mustMap(t, request))
+	require.ErrorContains(t, err, "exceeding")
 }
 
 func requireTRONOperation(

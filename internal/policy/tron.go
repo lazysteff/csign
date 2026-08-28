@@ -19,6 +19,9 @@ func ValidateTRXTransfer(key domain.Key, req *v1.TRXTransferSignRequest) error {
 	if err := enforceBigCap(fmt.Sprintf("%d", req.Amount), key.Policy.MaxValue, "amount"); err != nil {
 		return err
 	}
+	if _, err := v1.DecodeTRONMemoHex(req.MemoHex); err != nil {
+		return faults.Wrap(faults.Invalid, err)
+	}
 	return enforceFeeLimit(req.FeeLimit, key.Policy.MaxFeeLimit)
 }
 
@@ -37,6 +40,9 @@ func ValidateTRC20Transfer(key domain.Key, req *v1.TRC20TransferSignRequest) err
 	}
 	if err := enforceFeeLimit(req.FeeLimit, key.Policy.MaxFeeLimit); err != nil {
 		return err
+	}
+	if _, err := v1.DecodeTRONMemoHex(req.MemoHex); err != nil {
+		return faults.Wrap(faults.Invalid, err)
 	}
 	if err := enforceTokenContractAllowlist(key.Policy, v1.ChainFamilyTRON, req.TokenContract); err != nil {
 		return err

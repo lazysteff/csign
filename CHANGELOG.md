@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.2.0 - 2026-08-28
+
+Add byte-preserving memo signing for TRON transfers.
+
+- added optional hex-encoded `memo_hex` fields to TRX and TRC-20 transfer signing requests
+- populated `TransactionRaw.data` before hashing and signing, with byte-exact protobuf preservation
+- rejected malformed hex and transactions that exceed java-tron's 500×1024-byte serialized transaction limit
+- added typed `supported_tron_memo_capabilities` discovery metadata with encoding, operation, and size-limit details
+- added TRX, TRC-20, empty-memo compatibility, binary/Unicode memo, size, conformance, and opt-in Nile broadcast coverage
+
+Empty or omitted memos retain the prior serialized transaction and transaction hash. Memo contents are public on-chain and are not logged by `csign`.
+
 ## v1.1.1 - 2026-07-19
 
 Refresh compatible transitive Go module dependencies.

@@ -73,12 +73,12 @@ func TestRecoverableSignatureRejectsMalformedExternalMaterialWithoutPanicking(t 
 	require.ErrorContains(t, err, "external signer callback")
 
 	_, err = RecoverableSignature(context.Background(), ExternalMaterial{
-		Pub: &ecdsa.PublicKey{Curve: ethcrypto.S256(), X: big.NewInt(1), Y: big.NewInt(1)},
+		Pub: &ecdsa.PublicKey{Curve: ethcrypto.S256()},
 		SignFunc: func(context.Context, []byte) ([]byte, error) {
 			return nil, errors.New("must not be called")
 		},
 	}, digest)
-	require.ErrorContains(t, err, "valid secp256k1 point")
+	require.ErrorContains(t, err, "signer public key is required")
 }
 
 func TestRecoverableSignatureDefensivelyCopiesDigest(t *testing.T) {

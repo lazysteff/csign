@@ -23,5 +23,10 @@ func (b *Backend) handleVersion(_ context.Context, _ *logical.Request, _ *framew
 		SupportedAccountSigningSchemas:       signingSchemas,
 		SupportedEIP7702AuthorizationSchemas: authorizationSchemas,
 		SupportedEIP7702TransactionTypes:     transactionTypes,
+		SupportedTRONMemoCapabilities: []v1.TRONMemoCapability{{
+			Encoding:            v1.TRONMemoEncodingHex,
+			MaxTransactionBytes: v1.TRONMaxTransactionBytes,
+			SigningOperations:   []string{v1.OperationTRXTransfer, v1.OperationTRC20Transfer},
+		}},
 	}), nil
 }

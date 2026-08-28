@@ -20,6 +20,7 @@ Request type: `TRXTransferSignRequest`
 | --- | --- | --- | --- |
 | `to` | string | yes | Recipient Base58 address. |
 | `amount` | int64 | yes | TRX amount. |
+| `memo_hex` | string | no | Byte-preserving hex for `raw_data.data`. Plain or `0x`-prefixed hex is accepted. Empty means no memo. |
 | `fee_limit` | int64 | yes | TRON fee limit. |
 | `ref_block_bytes` | string | yes | Reference block bytes as hex. |
 | `ref_block_hash` | string | yes | Reference block hash bytes as hex. |
@@ -38,6 +39,7 @@ Request type: `TRC20TransferSignRequest`
 | `to` | string | yes | Recipient Base58 address. |
 | `token_contract` | string | yes | TRC-20 contract Base58 address. |
 | `amount` | string | yes | Token amount. |
+| `memo_hex` | string | no | Byte-preserving hex for `raw_data.data`. Plain or `0x`-prefixed hex is accepted. Empty means no memo. |
 | `fee_limit` | int64 | yes | TRON fee limit. |
 | `ref_block_bytes` | string | yes | Reference block bytes as hex. |
 | `ref_block_hash` | string | yes | Reference block hash bytes as hex. |
@@ -46,6 +48,10 @@ Request type: `TRC20TransferSignRequest`
 | `expiration` | int64 | yes | Expiration timestamp in milliseconds. |
 
 Response `operation`: `tron_transfer_trc20`
+
+For both transfer routes, `memo_hex` is decoded without UTF-8 assumptions and inserted before the protobuf `raw_data` bytes are hashed. Malformed or odd-length hex is rejected. The fully signed transaction, including java-tron's two reserved 64-byte result allowances, must fit the network's 500×1024-byte serialized transaction limit. Empty and omitted memos leave `raw_data.data` unset and preserve the pre-memo serialized transaction.
+
+Memo contents are public on-chain. Do not place secrets or sensitive payment data in this field, and do not log plaintext memo values by default.
 
 ## `POST v1/tron/resources/freeze_v2/sign`
 
@@ -181,6 +187,8 @@ This route is reward claiming only. It is distinct from Stake 2.0 `withdraw_expi
 
 | API route | Public field | Protobuf field |
 | --- | --- | --- |
+| `trx` | `memo_hex` | `raw_data.data` |
+| `trc20` | `memo_hex` | `raw_data.data` |
 | `freeze_v2` | `owner_address` | `owner_address` |
 | `freeze_v2` | `amount` | `frozen_balance` |
 | `freeze_v2` | `resource` | `resource` |

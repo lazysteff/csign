@@ -38,4 +38,5 @@ type VersionResponse struct {
 	SupportedAccountSigningSchemas       []string                       `json:"supported_account_signing_schemas,omitempty"`
 	SupportedEIP7702AuthorizationSchemas []string                       `json:"supported_eip7702_authorization_schemas,omitempty"`
 	SupportedEIP7702TransactionTypes     []EIP7702TransactionCapability `json:"supported_eip7702_transaction_types,omitempty"`
+	SupportedTRONMemoCapabilities        []TRONMemoCapability           `json:"supported_tron_memo_capabilities,omitempty"`
 }

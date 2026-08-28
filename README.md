@@ -303,6 +303,8 @@ The TRON signing endpoints require the transaction envelope fields expected by T
 
 `fee_limit` remains required on the existing TRX and TRC-20 routes. On the owner-based Stake 2.0, governance, and reward routes it is optional and, when omitted, defaults to `0` in TRON `raw_data`.
 
+TRX and TRC-20 transfer requests may include `memo_hex`, an optional byte-preserving plain or `0x`-prefixed hexadecimal value for `raw_data.data`. Empty or omitted values preserve the previous serialized transaction. Read `supported_tron_memo_capabilities` from `v1/version` before using this field; memo contents are public on-chain and should not be logged as plaintext.
+
 Use `v1/tron/transfers/trx/sign` for TRX transfers and `v1/tron/transfers/trc20/sign` for TRC-20 transfers.
 
 Use the owner-based TRON routes for treasury, governance, and reward operations:

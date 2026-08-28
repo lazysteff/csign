@@ -77,6 +77,35 @@ func buildTransaction(
 	}, nil
 }
 
+func applyTransferMemo(tx *core.Transaction, memoHex string) error {
+	memo, err := v1.DecodeTRONMemoHex(memoHex)
+	if err != nil {
+		return err
+	}
+	if tx.GetRawData() == nil {
+		return fmt.Errorf("tron transaction raw data is required")
+	}
+	if len(memo) > 0 {
+		tx.RawData.Data = memo
+	}
+	return validateTransactionSize(tx)
+}
+
+func validateTransactionSize(tx *core.Transaction) error {
+	if tx == nil || tx.GetRawData() == nil {
+		return fmt.Errorf("tron transaction raw data is required")
+	}
+	withSignature := proto.Clone(tx).(*core.Transaction)
+	withSignature.Signature = [][]byte{make([]byte, 65)}
+	// java-tron reserves two MAX_RESULT_SIZE_IN_TX (64-byte) results when
+	// validating a transaction before it enters a block.
+	size := proto.Size(withSignature) + 2*64
+	if size > v1.TRONMaxTransactionBytes {
+		return fmt.Errorf("serialized tron transaction is %d bytes, exceeding the %d-byte network limit", size, v1.TRONMaxTransactionBytes)
+	}
+	return nil
+}
+
 func signTransaction(ctx context.Context, material custody.Material, keyID, network, requestID, operation string, tx *core.Transaction) (*v1.SignResponse, error) {
 	rawData, err := proto.Marshal(tx.GetRawData())
 	if err != nil {
