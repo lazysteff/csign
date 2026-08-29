@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.1 - 2026-08-29
+
+- raised the build and module baseline from Go 1.26.2 to Go 1.27.0
+- updated the release workflow to `actions/checkout` v7.0.1 and `actions/setup-go` v7.0.0
+- updated the release verification linter to golangci-lint v2.13.2
+
 ## v1.2.0 - 2026-08-28
 
 Add byte-preserving memo signing for TRON transfers.

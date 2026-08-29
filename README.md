@@ -89,7 +89,7 @@ Hierarchical slash-delimited `key_id` values are supported end-to-end. A valid `
 
 ### Prerequisites
 
-- Go 1.26.2 or newer
+- Go 1.27.0 or newer
 - `make`
 - A Vault deployment with external plugin support if you want to run the plugin end-to-end
 
