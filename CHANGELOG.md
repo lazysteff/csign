@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.3.1 - 2026-09-28
+
+Refresh remaining indirect dependencies and correct module exclusions.
+
+- updated `github.com/gofrs/flock` to v0.13.1
+- updated `github.com/jhump/protoreflect` to v1.18.1
+- updated `github.com/klauspost/cpuid/v2` to v2.4.0
+- excluded the incompatible `github.com/armon/go-metrics` v0.6.1 and v0.7.0 tags, preventing module-path mismatch warnings during dependency upgrades
+
+The old `armon/go-metrics` module remains at v0.4.1 for Vault's compatibility layer. There are no API or signing-policy changes in this release.
+
 ## v1.3.0 - 2026-09-28
 
 Fix direct EVM contract destination normalization and refresh dependencies.
