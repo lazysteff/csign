@@ -81,6 +81,26 @@ func TestEIP7702TransactionPolicyRejectsSelectorBypass(t *testing.T) {
 	require.NoError(t, ValidateEVMEIP7702Transaction(key, &request))
 }
 
+func TestEIP7702TransactionPolicyRequiresLowercaseDestination(t *testing.T) {
+	const destination = "0x534b2f3a21130d7a60830c2df862319e593943a3"
+	request := signedType4PolicyRequest(t)
+	request.To = destination
+	key := advancedPolicyKey(v1.Policy{
+		AllowedSigningOperations:    []string{v1.OperationEVMEIP7702Transaction},
+		AllowedNetworks:             []string{advancedPolicyNetwork},
+		AllowedChainIDs:             []int64{1},
+		AllowedEIP7702Delegates:     []string{advancedPolicyContract},
+		AllowedTransactionTypes:     []string{v1.EIP7702TransactionTypeV1},
+		AllowedContractDestinations: []string{destination},
+		MaxAuthorizationListEntries: 1,
+	})
+	require.NoError(t, ValidateEVMEIP7702Transaction(key, &request))
+	request.To = common.HexToAddress(destination).Hex()
+	err := ValidateEVMEIP7702Transaction(key, &request)
+	require.Equal(t, faults.Invalid, faults.KindOf(err))
+	require.ErrorContains(t, err, "canonical lowercase")
+}
+
 func TestEIP7702TransactionPolicyRejectsListBeforeSignatureRecovery(t *testing.T) {
 	request := signedType4PolicyRequest(t)
 	request.AuthorizationList[0].R = "malformed"

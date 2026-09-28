@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.3.0 - 2026-09-28
+
+Fix direct EVM contract destination normalization and refresh dependencies.
+
+- normalized valid direct contract-call destinations before checking `allowed_contract_destinations`, so equivalent lowercase and checksum addresses produce the same signed transaction
+- preserved destination-allowlist precedence, malformed-address rejection, unauthorized-destination rejection, and strict lowercase encoding for structured EVM APIs
+- added policy regression coverage and an end-to-end Vault backend signing test for adding an equivalent destination allowlist
+- updated go-ethereum to v1.17.6, Vault SDK to v0.26.0, and compatible transitive Go dependencies
+- updated the Go baseline to 1.27.1 and release verification to golangci-lint v2.14.0
+
+`github.com/hashicorp/go-metrics` remains at v0.6.1: v0.7.0 removes the `compat` package still required by Vault SDK v0.26.0 and is explicitly excluded from module resolution.
+
 ## v1.2.1 - 2026-08-29
 
 - raised the build and module baseline from Go 1.26.2 to Go 1.27.0

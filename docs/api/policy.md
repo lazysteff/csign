@@ -41,6 +41,7 @@ Current enforcement rules:
 - Every key-backed signing request requires its exact registered operation in `allowed_signing_operations`; missing and empty lists deny all signing.
 - Operation strings use exact canonical comparison. Policy writes reject unknown, case/whitespace variants, and duplicates. A corrupted stored list denies all signing even if it also contains the matching operation.
 - EVM contract calls require a destination and at least four decoded calldata bytes. A missing destination cannot create a contract through this route.
+- Direct EVM contract calls normalize destination addresses before allowlist comparison, accepting equivalent lowercase and checksum encodings. A non-empty `allowed_contract_destinations` takes precedence over `allowed_token_contracts`; otherwise the token allowlist applies. Structured EVM requests still require canonical lowercase addresses.
 - TRC-20 signing is limited to the `transfer(address,uint256)` selector.
 - TRON owner-based routes validate only deterministic structural fields, owner authorization, and signability, not live chain state.
 - `VoteWitnessContract` signing enforces the protocol maximum of 30 submitted vote entries and rejects duplicate normalized witness addresses as a deterministic API constraint. It does not enforce witness allowlists or business vote caps.

@@ -1,11 +1,13 @@
 package policy
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/faults"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,6 +63,64 @@ func TestValidateEVMContractCallUsesNeutralDestinationAllowlist(t *testing.T) {
 	key.Policy.AllowedContractDestinations = []string{testContract}
 	key.Policy.AllowedSelectors = []string{domain.TRC20TransferSelector}
 	req := contractCallRequest(signer)
+	require.NoError(t, ValidateEVMContractCall(key, req))
+	req.To = testRecipient
+	require.Equal(t, faults.PolicyDenied, faults.KindOf(ValidateEVMContractCall(key, req)))
+}
+
+func TestValidateEVMContractCallAddressRepresentations(t *testing.T) {
+	const lower = "0x534b2f3a21130d7a60830c2df862319e593943a3"
+	checksum := common.HexToAddress(lower).Hex()
+	signer := testSignerAddress(t, v1.ChainFamilyEVM)
+	for _, mode := range []string{"token", "destination", "both"} {
+		for _, allowed := range []string{lower, checksum} {
+			t.Run(mode+"/"+allowed, func(t *testing.T) {
+				key := baseEVMKey(t)
+				if mode != "destination" {
+					key.Policy.AllowedTokenContracts = []string{allowed}
+				}
+				if mode != "token" {
+					key.Policy.AllowedContractDestinations = []string{allowed}
+				}
+				for _, test := range []struct {
+					name string
+					to   string
+					kind faults.Kind
+				}{
+					{name: "lowercase", to: lower},
+					{name: "checksum", to: checksum},
+					{name: "uppercase prefix", to: "0X" + strings.ToUpper(lower[2:])},
+					{name: "unprefixed", to: lower[2:]},
+					{name: "empty", kind: faults.Invalid},
+					{name: "short", to: "0x1234", kind: faults.Invalid},
+					{name: "long", to: lower + "00", kind: faults.Invalid},
+					{name: "nonhex", to: lower[:41] + "z", kind: faults.Invalid},
+					{name: "whitespace", to: " " + lower, kind: faults.Invalid},
+					{name: "unauthorized", to: testRecipient, kind: faults.PolicyDenied},
+					{name: "unauthorized checksum", to: common.HexToAddress("0xabcdefabcdefabcdefabcdefabcdefabcdefabcd").Hex(), kind: faults.PolicyDenied},
+				} {
+					t.Run(test.name, func(t *testing.T) {
+						req := contractCallRequest(signer)
+						req.To = test.to
+						err := ValidateEVMContractCall(key, req)
+						if test.kind == "" {
+							require.NoError(t, err)
+						} else {
+							require.Equal(t, test.kind, faults.KindOf(err))
+						}
+						require.Equal(t, test.to, req.To)
+					})
+				}
+			})
+		}
+	}
+}
+
+func TestValidateEVMContractCallDestinationAllowlistTakesPrecedence(t *testing.T) {
+	key := baseEVMKey(t)
+	key.Policy.AllowedTokenContracts = []string{testRecipient}
+	key.Policy.AllowedContractDestinations = []string{testContract}
+	req := contractCallRequest(key.SignerAddress)
 	require.NoError(t, ValidateEVMContractCall(key, req))
 	req.To = testRecipient
 	require.Equal(t, faults.PolicyDenied, faults.KindOf(ValidateEVMContractCall(key, req)))

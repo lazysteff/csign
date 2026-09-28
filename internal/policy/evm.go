@@ -49,7 +49,8 @@ func ValidateEVMContractCall(key domain.Key, req *v1.EVMContractCallSignRequest)
 	if err := validateBase(key, req.BaseSignRequest, v1.ChainFamilyEVM, &req.ChainID); err != nil {
 		return err
 	}
-	if _, err := chain.NormalizeAddress(v1.ChainFamilyEVM, req.To); err != nil {
+	destination, err := chain.NormalizeAddress(v1.ChainFamilyEVM, req.To)
+	if err != nil {
 		return faults.Wrap(faults.Invalid, err)
 	}
 	if strings.TrimSpace(req.Data) == "" {
@@ -60,7 +61,9 @@ func ValidateEVMContractCall(key domain.Key, req *v1.EVMContractCallSignRequest)
 		return faults.Wrap(faults.Invalid, err)
 	}
 	if len(key.Policy.AllowedContractDestinations) > 0 {
-		if err := requireAddressAllowed(key.Policy.AllowedContractDestinations, req.To, "transaction destination"); err != nil {
+		// Direct calls accept ordinary hex addresses; the shared allowlist helper
+		// requires the canonical wire representation used by structured requests.
+		if err := requireAddressAllowed(key.Policy.AllowedContractDestinations, strings.ToLower(destination), "transaction destination"); err != nil {
 			return err
 		}
 	} else if err := enforceTokenContractAllowlist(key.Policy, v1.ChainFamilyEVM, req.To); err != nil {
