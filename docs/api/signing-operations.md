@@ -12,6 +12,7 @@ The service has one process-lifetime route/operation catalog. It is used by hand
 
 | Signing route | Required operation |
 | --- | --- |
+| `v1/solana/messages/sign` | `solana_message` |
 | `v1/evm/transfers/legacy/sign` | `evm_transfer_legacy` |
 | `v1/evm/transfers/eip1559/sign` | `evm_transfer_eip1559` |
 | `v1/evm/contracts/eip1559/sign` | `evm_contract_call_eip1559` |
@@ -52,7 +53,7 @@ Every production policy persistence path validates against this same catalog. Po
 
 ## Custody boundary
 
-The production call graph has one `MaterialForKey` invocation, inside `SigningService.Execute` after operation and route-policy validation. All Vault signing handlers enter that service; no background job, CLI, migration, administrative utility, raw-hash/message endpoint, or other production service calls a chain signer or `SignDigest` directly. Direct chain-signer calls in the test suite are test-only.
+The production call graph resolves one `SigningMaterial` inside `SigningService.Execute`, after operation and route-policy validation, input normalization, read-only custody capability inspection, unique scheme resolution and payload preparation. The legacy secp256k1 adapter delegates to `MaterialForKey`; generic Ed25519 uses the same generalized custody boundary. All Vault signing handlers enter that service; no background job, CLI, migration, administrative utility, generic raw-hash/message endpoint, or other production service calls a chain signer or custody signing primitive directly. Direct chain-signer calls in the test suite are test-only.
 
 Provisioning uses separate key-management APIs and is intentionally outside this gate. Key generation/import creates or parses material but does not sign; public-key reads return stored metadata; verification and recovery operate on caller-supplied signed artifacts. No rotation endpoint currently exists. A future rotation or administrative custody API needs its own authorization design and is not a signing-route exception.
 
@@ -113,3 +114,5 @@ The v0.7 storage format accepts and preserves every operation identifier in the 
 Do not roll back to an older binary during signing traffic. Older ordinary-route validators ignore `allowed_signing_operations`, which can restore broader signing even while policies remain staged. For emergency rollback, first disable affected keys or revoke Vault ACLs to every signing route, keep signing unavailable through the rollback, and restore mandatory enforcement before re-enabling keys or ACLs. Network, chain, destination, selector, and value restrictions retained by an older binary are not a substitute for operation enforcement.
 
 Terminology in this documentation distinguishes direct EOA transaction signing, typed-data signing, account-abstraction and authorization signing, and TRON transaction/contract-operation signing. “Legacy” is reserved for the EVM legacy transaction type.
+
+`solana_message` explicitly grants protocol-scoped opaque signing. Its policy boundary does not enforce transaction instruction or amount semantics. Scheme availability and discovery never grant authorization; see [the security model](../SIGNING_ARCHITECTURE.md).

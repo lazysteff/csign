@@ -1,48 +1,49 @@
 package evm
 
 import (
-	"context"
+	"crypto/ecdsa"
 	"fmt"
 
 	"github.com/chain-signer/chain-signer/internal/chain/evm/advancedcodec"
 	"github.com/chain-signer/chain-signer/internal/chain/evm/eip7702"
-	"github.com/chain-signer/chain-signer/internal/custody"
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	enc "github.com/chain-signer/chain-signer/internal/encoding"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 )
 
-func SignEIP7702Authorization(ctx context.Context, material custody.Material, req *v1.EVMEIP7702AuthorizationSignRequest) (*v1.EVMEIP7702AuthorizationSignResponse, error) {
+func PrepareEIP7702Authorization(pub *ecdsa.PublicKey, req *v1.EVMEIP7702AuthorizationSignRequest) (*cryptography.Prepared, error) {
 	prepared, err := advancedcodec.PrepareAuthorization(req.AuthorizationSchema, req.ChainID, req.Address, req.Nonce, req.AuthorityAddress)
 	if err != nil {
 		return nil, err
 	}
 	expected := prepared.Expected
-	artifact, err := eip7702.SignAuthorization(ctx, material, prepared.Authorization, eip7702.AuthorizationOptions{
-		AllowWildcard:     prepared.Authorization.ChainID.IsZero(),
-		ExpectedAuthority: &expected,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &v1.EVMEIP7702AuthorizationSignResponse{
-		EVMOperationResponseBase: operationResponse(req.KeyID, req.Network, v1.OperationEVMEIP7702Authorization, artifact.Authority, req.RequestID),
-		EIP7702SignedAuthorization: v1.EIP7702SignedAuthorization{
-			EIP7702Authorization: v1.EIP7702Authorization{
-				ChainID: artifact.Authorization.ChainID.ToBig().String(),
-				Address: canonicalAddress(artifact.Authorization.Address),
-				Nonce:   fmt.Sprintf("%d", artifact.Authorization.Nonce),
+	options := eip7702.AuthorizationOptions{AllowWildcard: prepared.Authorization.ChainID.IsZero(), ExpectedAuthority: &expected}
+	hash := prepared.Authorization.SigHash()
+	return &cryptography.Prepared{Payload: cryptography.NewPayload(cryptography.Digest, hash.Bytes()), Format: func(signature []byte) (any, error) {
+		artifact, err := eip7702.AssembleAuthorization(prepared.Authorization, signature, options)
+		if err != nil {
+			return nil, err
+		}
+		return &v1.EVMEIP7702AuthorizationSignResponse{
+			EVMOperationResponseBase: operationResponse(req.KeyID, req.Network, v1.OperationEVMEIP7702Authorization, artifact.Authority, req.RequestID),
+			EIP7702SignedAuthorization: v1.EIP7702SignedAuthorization{
+				EIP7702Authorization: v1.EIP7702Authorization{
+					ChainID: artifact.Authorization.ChainID.ToBig().String(),
+					Address: canonicalAddress(artifact.Authorization.Address),
+					Nonce:   fmt.Sprintf("%d", artifact.Authorization.Nonce),
+				},
+				YParity: artifact.Authorization.V,
+				R:       fixedBigHex(artifact.Authorization.R.ToBig()),
+				S:       fixedBigHex(artifact.Authorization.S.ToBig()),
 			},
-			YParity: artifact.Authorization.V,
-			R:       fixedBigHex(artifact.Authorization.R.ToBig()),
-			S:       fixedBigHex(artifact.Authorization.S.ToBig()),
-		},
-		AuthorizationSchema:     req.AuthorizationSchema,
-		AuthorityAddress:        canonicalAddress(artifact.Authority),
-		AuthorizationHash:       artifact.SigningHash.Hex(),
-		SerializedAuthorization: enc.EncodeHex(artifact.Serialized),
-	}, nil
+			AuthorizationSchema:     req.AuthorizationSchema,
+			AuthorityAddress:        canonicalAddress(artifact.Authority),
+			AuthorizationHash:       artifact.SigningHash.Hex(),
+			SerializedAuthorization: enc.EncodeHex(artifact.Serialized),
+		}, nil
+	}}, nil
 }
 
 func VerifyEIP7702Authorization(req v1.EVMEIP7702AuthorizationVerifyRequest) (*v1.EVMEIP7702AuthorizationVerifyResponse, error) {
@@ -72,29 +73,41 @@ func VerifyEIP7702Authorization(req v1.EVMEIP7702AuthorizationVerifyRequest) (*v
 	}, nil
 }
 
-func SignEIP7702Transaction(ctx context.Context, material custody.Material, req *v1.EVMEIP7702TransactionSignRequest) (*v1.EVMEIP7702TransactionSignResponse, error) {
+func PrepareEIP7702Transaction(pub *ecdsa.PublicKey, req *v1.EVMEIP7702TransactionSignRequest) (*cryptography.Prepared, error) {
 	prepared, err := advancedcodec.PrepareTransaction(*req)
 	if err != nil {
 		return nil, err
 	}
 	expectedSigner := prepared.ExpectedSigner
-	artifact, err := eip7702.SignTransaction(ctx, material, prepared.Transaction, eip7702.TransactionOptions{
-		AllowWildcardAuthorizations: hasWildcardAuthorization(prepared.Transaction.AuthList),
-		ExpectedAuthorities:         prepared.RecoveredAuthorities,
-		ExpectedSigner:              &expectedSigner,
-		MaxAuthorizationListEntries: len(prepared.Transaction.AuthList),
-	})
+	options := eip7702.TransactionOptions{AllowWildcardAuthorizations: hasWildcardAuthorization(prepared.Transaction.AuthList), ExpectedAuthorities: prepared.RecoveredAuthorities, ExpectedSigner: &expectedSigner, MaxAuthorizationListEntries: len(prepared.Transaction.AuthList)}
+	built, err := eip7702.BuildTransaction(prepared.Transaction, options)
 	if err != nil {
 		return nil, err
 	}
-	return &v1.EVMEIP7702TransactionSignResponse{
-		EVMOperationResponseBase: operationResponse(req.KeyID, req.Network, v1.OperationEVMEIP7702Transaction, artifact.Signer, req.RequestID),
-		TransactionType:          v1.EIP7702TransactionTypeV1,
-		TransactionHash:          artifact.TransactionHash.Hex(),
-		TransactionSigningHash:   artifact.SigningHash.Hex(),
-		SignedPayload:            enc.EncodeHex(artifact.SignedPayload),
-		PayloadEncoding:          v1.PayloadEncodingHex,
-	}, nil
+	signer := ethtypes.NewPragueSigner(built.ChainId())
+	hash := signer.Hash(built)
+	return &cryptography.Prepared{Payload: cryptography.NewPayload(cryptography.Digest, hash.Bytes()), Format: func(signature []byte) (any, error) {
+		signed, err := built.WithSignature(signer, signature)
+		if err != nil {
+			return nil, err
+		}
+		raw, err := signed.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		artifact, err := eip7702.RecoverTransaction(raw, options)
+		if err != nil {
+			return nil, err
+		}
+		return &v1.EVMEIP7702TransactionSignResponse{
+			EVMOperationResponseBase: operationResponse(req.KeyID, req.Network, v1.OperationEVMEIP7702Transaction, artifact.Signer, req.RequestID),
+			TransactionType:          v1.EIP7702TransactionTypeV1,
+			TransactionHash:          artifact.TransactionHash.Hex(),
+			TransactionSigningHash:   artifact.SigningHash.Hex(),
+			SignedPayload:            enc.EncodeHex(artifact.SignedPayload),
+			PayloadEncoding:          v1.PayloadEncodingHex,
+		}, nil
+	}}, nil
 }
 
 func RecoverEIP7702Transaction(req v1.EVMEIP7702TransactionRecoverRequest) (*v1.EVMEIP7702TransactionRecoverResponse, error) {

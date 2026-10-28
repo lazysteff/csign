@@ -1,11 +1,11 @@
 package tron
 
 import (
-	"context"
+	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	enc "github.com/chain-signer/chain-signer/internal/encoding"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-func SignTRXTransfer(ctx context.Context, material custody.Material, req *v1.TRXTransferSignRequest) (*v1.SignResponse, error) {
+func PrepareTRXTransfer(pub *ecdsa.PublicKey, req *v1.TRXTransferSignRequest) (*cryptography.Prepared, error) {
 	owner, err := base58Address(req.SourceAddress)
 	if err != nil {
 		return nil, err
@@ -47,10 +47,10 @@ func SignTRXTransfer(ctx context.Context, material custody.Material, req *v1.TRX
 	if err := applyTransferMemo(tx, req.MemoHex); err != nil {
 		return nil, err
 	}
-	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationTRXTransfer, tx)
+	return prepareTransaction(pub, req.KeyID, req.Network, req.RequestID, v1.OperationTRXTransfer, tx)
 }
 
-func SignTRC20Transfer(ctx context.Context, material custody.Material, req *v1.TRC20TransferSignRequest) (*v1.SignResponse, error) {
+func PrepareTRC20Transfer(pub *ecdsa.PublicKey, req *v1.TRC20TransferSignRequest) (*cryptography.Prepared, error) {
 	owner, err := base58Address(req.SourceAddress)
 	if err != nil {
 		return nil, err
@@ -101,5 +101,5 @@ func SignTRC20Transfer(ctx context.Context, material custody.Material, req *v1.T
 	if err := applyTransferMemo(tx, req.MemoHex); err != nil {
 		return nil, err
 	}
-	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationTRC20Transfer, tx)
+	return prepareTransaction(pub, req.KeyID, req.Network, req.RequestID, v1.OperationTRC20Transfer, tx)
 }

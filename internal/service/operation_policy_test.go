@@ -36,7 +36,7 @@ func TestSigningOperationGateCoversEveryCatalogRoute(t *testing.T) {
 					executed := false
 					custodyCalls := 0
 					registry := staticOperationRegistry{catalog: catalog, descriptor: genericDescriptor(entry, &validated, &executed)}
-					key := &domain.Key{ID: "key-1", Policy: v1.Policy{AllowedSigningOperations: test.allowed}}
+					key := &domain.Key{ID: "key-1", Active: true, Policy: v1.Policy{AllowedSigningOperations: test.allowed}}
 					service := NewSigningService(
 						&fakeKeyLookup{key: key}, policy.DefaultEvaluator{},
 						fakeCustodyResolver{fn: func(context.Context, domain.Key) (custody.Material, error) {
@@ -89,7 +89,7 @@ func TestSigningOperationGateDeniesWithoutCustody(t *testing.T) {
 			custodyCalls := 0
 			audit := &recordingAudit{}
 			registry := staticOperationRegistry{catalog: catalog, descriptor: genericDescriptor(entry, &validated, &executed)}
-			keys := &fakeKeyLookup{key: &domain.Key{ID: "key-1", Policy: v1.Policy{AllowedSigningOperations: test.allowed}}}
+			keys := &fakeKeyLookup{key: &domain.Key{ID: "key-1", Active: true, Policy: v1.Policy{AllowedSigningOperations: test.allowed}}}
 			service := NewSigningService(
 				keys, policy.DefaultEvaluator{},
 				fakeCustodyResolver{fn: func(context.Context, domain.Key) (custody.Material, error) {

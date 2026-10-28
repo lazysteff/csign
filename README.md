@@ -1,8 +1,8 @@
 # chain-signer
 
-`chain-signer` is a HashiCorp Vault external plugin for typed transaction and structured protocol signing on EVM and TRON networks.
+`chain-signer` is a HashiCorp Vault external plugin for operation-authorized signing with typed semantic EVM/TRON operations and opaque Solana message signing.
 
-It is designed for teams that want applications to request signatures through Vault without exposing raw private keys or a generic `sign(hash)` / `sign(bytes)` endpoint. Instead of handing arbitrary payloads to a signer, callers submit structured protocol fields for a supported operation, and the plugin returns a verified signature or signed transaction artifact.
+It is designed for teams that want applications to request signatures through Vault without exposing raw private keys or a generic `sign(hash)` / `sign(bytes)` endpoint. Callers use explicitly registered operations. Typed EVM/TRON operations validate structured protocol fields; the opaque `solana_message` operation signs exact caller-supplied message bytes under its own default-deny authorization. The plugin returns a verified signature or signed transaction artifact.
 
 ## Why use chain-signer
 
@@ -29,22 +29,23 @@ It is designed for teams that want applications to request signatures through Va
 - TRON withdraw expired unfreeze
 - TRON vote witness
 - TRON SR/voter reward claim
+- Solana opaque message signing with a managed Ed25519 key
 
-All application-facing signing is typed. There is no generic raw-hash, arbitrary-byte, arbitrary EIP-712, or unsigned-transaction signing endpoint.
+There is no unrestricted public `sign(hash)` or `sign(bytes)` endpoint. Protocol-scoped opaque signing is available only through an explicitly authorized operation. See [the signing architecture and threat model](docs/SIGNING_ARCHITECTURE.md) and [Solana API](docs/api/solana.md) for its policy guarantees.
 
 ## How it works
 
 1. Build and register the plugin with Vault as an external `secret` plugin.
 2. Mount it at a path such as `chain-signer/`.
 3. Create a key bound to a chain family and an optional policy.
-4. Call a typed `/v1/.../sign` endpoint with structured transaction fields.
+4. Call an authorized `/v1/.../sign` endpoint with the operation-specific request.
 5. Use `/v1/verify` or `/v1/recover` for direct EOA/TRON transaction inspection, or the dedicated EIP-712, ERC-4337, and EIP-7702 inspection routes for structured verification and recovery.
 
 Detailed HTTP API reference: [docs/API.md](docs/API.md)
 
 ## Key custody modes
 
-- `mvp`: the plugin generates or imports a secp256k1 private key and stores it in the plugin's Vault-backed storage.
+- `mvp`: the plugin generates or imports secp256k1 or Ed25519 material and stores it in the plugin's Vault-backed storage.
 - `pkcs11`: the key record stores a public key plus `external_signer_ref`, and signing is delegated through an injected external signer resolver.
 
 This repository includes the external signer abstraction and conformance coverage for that flow. It does not ship a turnkey PKCS#11 runtime integration module.
@@ -54,6 +55,7 @@ Typed-data, account-abstraction, and authorization operations use the same custo
 ## Vault paths
 
 - `v1/version`
+- `v1/solana/messages/sign`
 - `v1/keys`
 - `v1/keys/<key_id>`
 - `v1/key-status/<key_id>`
@@ -114,7 +116,7 @@ This first runs `make verify`. If tests or golangci-lint fail, no release artifa
 ### Publish a release
 
 ```bash
-VERSION=v1.3.1 make publish-release
+VERSION=v2.0.0 make publish-release
 ```
 
 This is the supported release path. It requires a clean `main` worktree, verifies the changelog entry, runs the gated artifact build, creates and pushes the annotated tag, and lets the GitHub Actions release workflow publish the GitHub release. The workflow runs the same verification gate again before uploading release assets.
@@ -129,7 +131,7 @@ Do not create GitHub releases manually. Manual release creation bypasses the tes
 2. Copy `dist/chain-signer-plugin` into that directory.
 3. Register the plugin checksum in the Vault plugin catalog.
 4. Enable the plugin at a mount path.
-5. Apply Vault ACLs so each caller can access only the typed endpoints it needs.
+5. Apply Vault ACLs so each caller can access only the operation endpoints it needs.
 
 Example:
 
@@ -325,7 +327,7 @@ The new resource routes intentionally use `owner_address` instead of `source_add
 
 The new routes are forward-only. There is no migration, alias route, compatibility layer for older request shapes, or support for previously submitted signing requests. Recovery remains stateless and may classify any structurally valid signed TRON payload for a supported contract type, including payloads created outside `csign`.
 
-`/v1/version` returns `supported_routes`, the canonical `supported_signing_operations` route-to-operation catalog, and typed protocol capabilities. These fields describe compiled support, not Vault ACL access or per-key authorization.
+`/v1/version` returns `supported_routes`, the canonical `supported_signing_operations` route-to-operation catalog, and operation details distinguishing typed semantic and opaque security models alongside schemes, compatible key types and encodings. These fields describe compiled support, not Vault ACL access or per-key authorization.
 
 ## Use from Go
 
@@ -428,7 +430,9 @@ Key source directories:
 - `pkg/client`: Go client for calling the plugin through Vault
 - `internal/vaultbackend`: Vault transport adapter and error mapping
 - `internal/service`: key lifecycle, signing orchestration, and recovery services
-- `internal/chain`: EVM and TRON signing and recovery logic
+- `internal/chain`: protocol identity, EVM/TRON artifact preparation and recovery, and opaque Solana message preparation
+- `internal/cryptography`: key-type/scheme compatibility and signature verification
+- `internal/custody`: protocol-neutral material protection and signing capabilities
 - `tests/conformance`: end-to-end backend conformance tests
 
 ## Contributing

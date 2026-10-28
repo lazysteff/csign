@@ -35,6 +35,6 @@ func TestProvisionCreateRequest(t *testing.T) {
 	require.Equal(t, "hsm-1", external.ExternalSignerRef)
 	require.Empty(t, external.PrivateKeyHex)
 
-	_, err = ProvisionCreateRequest(v1.CreateKeyRequest{CustodyMode: "unknown"})
+	_, err = ProvisionCreateRequest(v1.CreateKeyRequest{ChainFamily: "evm", CustodyMode: "unknown"})
 	require.ErrorContains(t, err, "unsupported custody mode")
 }

@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/chain-signer/chain-signer/internal/chain/evm"
+	"github.com/chain-signer/chain-signer/internal/chain/solana"
 	"github.com/chain-signer/chain-signer/internal/chain/tron"
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 )
@@ -25,6 +27,8 @@ func NormalizeAddress(chainFamily, value string) (string, error) {
 	switch domain.NormalizeChainFamily(chainFamily) {
 	case v1.ChainFamilyEVM:
 		return evm.NormalizeAddress(value)
+	case v1.ChainFamilySolana:
+		return solana.NormalizeAddress(value)
 	case v1.ChainFamilyTRON:
 		return tron.NormalizeAddress(value)
 	default:
@@ -36,6 +40,8 @@ func EqualAddress(chainFamily, left, right string) bool {
 	switch domain.NormalizeChainFamily(chainFamily) {
 	case v1.ChainFamilyEVM:
 		return evm.EqualAddress(left, right)
+	case v1.ChainFamilySolana:
+		return solana.EqualAddress(left, right)
 	case v1.ChainFamilyTRON:
 		return tron.EqualAddress(left, right)
 	default:
@@ -52,4 +58,16 @@ func Recover(req v1.VerifyRequest) (*v1.RecoverResponse, error) {
 	default:
 		return nil, fmt.Errorf("unsupported chain family %q", req.ChainFamily)
 	}
+}
+
+// DerivePublicIdentity belongs to protocol logic, not cryptographic custody.
+func DerivePublicIdentity(protocol string, pub cryptography.PublicKey) (string, error) {
+	if protocol == v1.ChainFamilySolana {
+		return solana.DeriveAddress(pub)
+	}
+	p, err := cryptography.ECDSAPublicKey(pub)
+	if err != nil {
+		return "", err
+	}
+	return DeriveSignerAddress(protocol, p)
 }

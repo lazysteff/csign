@@ -6,19 +6,20 @@
 
 ### `POST v1/keys`
 
-Creates a new chain-bound key record.
+Creates or imports a managed key, optionally restricted to one protocol.
 
 Request type: `CreateKeyRequest`
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `key_id` | string | no | Explicit key identifier. If omitted, the plugin generates one. Hierarchical slash-delimited IDs are supported end-to-end. |
-| `chain_family` | string | yes | `evm` or `tron`. |
+| `chain_family` | string | historical requests only | Optional restrictive binding `evm`, `tron`, or `solana` when `key_type` is explicit. Required for historical creation requests that omit `key_type`. |
 | `custody_mode` | string | no | `mvp` or `pkcs11`. Defaults to `mvp`. |
 | `labels` | object | no | Arbitrary metadata stored with the key. |
 | `policy` | object | no | Request guardrails applied at sign time. |
-| `import_private_key_hex` | string | no | Only valid in `mvp` mode. Imports an existing secp256k1 private key. |
-| `public_key_hex` | string | yes in `pkcs11` | Public key for externally managed signing material. |
+| `import_private_key_hex` | string | no | Only valid in `mvp` mode. Imports a secp256k1 scalar or Ed25519 seed/validated seed-plus-public-key representation. |
+| `key_type` | string | generalized requests | Explicit `secp256k1` or `ed25519`; historical EVM/TRON requests may omit it through compatibility decoding. |
+| `public_key_hex` | string | yes in `pkcs11` | Public key for externally managed secp256k1 material. Rejected for explicitly typed managed generation/import, which derives its public key. |
 | `external_signer_ref` | string | yes in `pkcs11` | Reference passed to the external signer resolver. |
 
 Response type: `KeyResponse`
@@ -27,13 +28,14 @@ Response type: `KeyResponse`
 | --- | --- | --- |
 | `api_version` | string | Wire contract version. |
 | `key_id` | string | Key identifier. |
-| `chain_family` | string | `evm` or `tron`. |
+| `key_type` | string | Cryptographic material type: `secp256k1` or `ed25519`. |
+| `chain_family` | string | Restrictive binding `evm`, `tron`, or `solana`; empty for an unbound key. |
 | `custody_mode` | string | `mvp` or `pkcs11`. |
 | `active` | bool | Whether the key can sign. |
 | `labels` | object | Stored labels. |
 | `policy` | object | Stored policy. |
-| `signer_address` | string | Derived on-chain address for the key. |
-| `public_key_hex` | string | Public key in hex. |
+| `signer_address` | string | Protocol-derived address for a bound key; empty for an unbound key. |
+| `public_key_hex` | string | Public key in hex: existing uncompressed SEC1 representation for secp256k1 API responses, raw 32-byte Ed25519 representation. Internal secp256k1 records use compressed SEC1. |
 | `created_at` | string | RFC3339 timestamp. |
 | `updated_at` | string | RFC3339 timestamp. |
 
@@ -42,6 +44,8 @@ Notes:
 - The response never includes `private_key_hex`.
 - Duplicate `key_id` values return `409`.
 - A missing or empty `allowed_signing_operations` policy is valid but intentionally denies every signing route.
+- Ed25519 keys use managed custody (`mvp`) only. Imports accept a 32-byte seed or a 64-byte seed/public-key representation whose suffix must match the seed; only the canonical seed is stored.
+- `key_type` and protocol binding are independent. Incompatible binding/material combinations fail rather than changing the requested key type.
 
 ### `LIST v1/keys`
 
@@ -126,7 +130,7 @@ Direct EOA transfer/contract-call and TRON transfer endpoints share these base f
 | `request_id` | string | yes | Caller correlation identifier. |
 | `labels` | object | no | Arbitrary caller metadata. |
 | `approval_ref` | string | no | Approval system reference. |
-| `source_address` | string | yes | Must match the stored signer address for the key. |
+| `source_address` | string | yes | Must match the protocol identity derived from the resolved key. |
 
 TRON Stake 2.0 resource routes do not use `BaseSignRequest`. They use the same correlation and workflow fields plus `owner_address` instead of `source_address`. This matches TRON stake/delegation contract terminology.
 
@@ -143,3 +147,5 @@ Direct transaction endpoints return `SignResponse`:
 | `tx_hash` | string | Transaction hash or transaction ID. |
 | `signed_payload` | string | Signed payload encoded as hex. |
 | `payload_encoding` | string | Currently `hex`. |
+
+Generalized creation accepts an optional restrictive `chain_family` binding separately from explicit key type. Key responses expose `key_type`, public key and applicable protocol identity; never private material. See [record migration and custody](../SIGNING_ARCHITECTURE.md) and [Solana](solana.md).

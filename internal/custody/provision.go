@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	enc "github.com/chain-signer/chain-signer/internal/encoding"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -12,6 +13,9 @@ import (
 )
 
 type ProvisionedKey struct {
+	KeyType           cryptography.KeyType
+	CanonicalPublic   cryptography.PublicKey
+	MaterialFormat    string
 	CustodyMode       string
 	PublicKey         *ecdsa.PublicKey
 	PublicKeyHex      string
@@ -19,7 +23,7 @@ type ProvisionedKey struct {
 	ExternalSignerRef string
 }
 
-func ProvisionCreateRequest(req v1.CreateKeyRequest) (ProvisionedKey, error) {
+func provisionSecp256k1(req v1.CreateKeyRequest) (ProvisionedKey, error) {
 	custodyMode := domain.NormalizeCustodyMode(req.CustodyMode)
 	if custodyMode == "" {
 		custodyMode = v1.CustodyModeMVP
@@ -33,6 +37,7 @@ func ProvisionCreateRequest(req v1.CreateKeyRequest) (ProvisionedKey, error) {
 				return ProvisionedKey{}, err
 			}
 			return ProvisionedKey{
+				KeyType: cryptography.Secp256k1, MaterialFormat: Secp256k1Scalar,
 				CustodyMode:   custodyMode,
 				PublicKey:     &privateKey.PublicKey,
 				PublicKeyHex:  PublicKeyHex(&privateKey.PublicKey),
@@ -45,6 +50,7 @@ func ProvisionCreateRequest(req v1.CreateKeyRequest) (ProvisionedKey, error) {
 			return ProvisionedKey{}, err
 		}
 		return ProvisionedKey{
+			KeyType: cryptography.Secp256k1, MaterialFormat: Secp256k1Scalar,
 			CustodyMode:   custodyMode,
 			PublicKey:     &privateKey.PublicKey,
 			PublicKeyHex:  PublicKeyHex(&privateKey.PublicKey),
@@ -56,6 +62,7 @@ func ProvisionCreateRequest(req v1.CreateKeyRequest) (ProvisionedKey, error) {
 			return ProvisionedKey{}, err
 		}
 		return ProvisionedKey{
+			KeyType:           cryptography.Secp256k1,
 			CustodyMode:       custodyMode,
 			PublicKey:         publicKey,
 			PublicKeyHex:      PublicKeyHex(publicKey),
@@ -64,4 +71,29 @@ func ProvisionCreateRequest(req v1.CreateKeyRequest) (ProvisionedKey, error) {
 	default:
 		return ProvisionedKey{}, fmt.Errorf("unsupported custody mode %q", req.CustodyMode)
 	}
+}
+
+func ProvisionCreateRequest(req v1.CreateKeyRequest) (ProvisionedKey, error) {
+	keyType, err := CreateKeyType(req)
+	if err != nil {
+		return ProvisionedKey{}, err
+	}
+	mode := domain.NormalizeCustodyMode(req.CustodyMode)
+	if req.KeyType != "" && (mode == "" || mode == v1.CustodyModeMVP) && req.PublicKeyHex != "" {
+		return ProvisionedKey{}, fmt.Errorf("public_key_hex is only valid for external custody when key_type is explicit")
+	}
+	if keyType == cryptography.Ed25519Key {
+		return provisionEd25519(req)
+	}
+	p, err := provisionSecp256k1(req)
+	if err != nil {
+		return ProvisionedKey{}, err
+	}
+	canonical, err := cryptography.CanonicalSecp256k1(ethcrypto.FromECDSAPub(p.PublicKey))
+	if err != nil {
+		return ProvisionedKey{}, err
+	}
+	p.CanonicalPublic = canonical
+	p.PublicKeyHex = enc.EncodeHex(canonical.Bytes)
+	return p, nil
 }

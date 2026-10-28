@@ -87,13 +87,13 @@ func TestVerifyingPaymasterApprovalRejectsWrongDomainAndMixedSchema(t *testing.T
 func testVerifyingPaymasterApproval() (Domain, VerifyingPaymasterApproval) {
 	paymaster := "0x2222222222222222222222222222222222222222"
 	return Domain{
-			Name: VerifyingPaymasterApprovalDomainName, Version: VerifyingPaymasterApprovalDomainVersion,
-			ChainID: "42161", VerifyingContract: paymaster,
-		}, VerifyingPaymasterApproval{
-			ChainID: "42161", EntryPoint: "0x1111111111111111111111111111111111111111", Paymaster: paymaster,
-			UserOpHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-			ValidAfter: "1", ValidUntil: "100", MaxSponsoredCost: "1000",
-			Nonce:       "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-			ContextHash: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-		}
+		Name: VerifyingPaymasterApprovalDomainName, Version: VerifyingPaymasterApprovalDomainVersion,
+		ChainID: "42161", VerifyingContract: paymaster,
+	}, VerifyingPaymasterApproval{
+		ChainID: "42161", EntryPoint: "0x1111111111111111111111111111111111111111", Paymaster: paymaster,
+		UserOpHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		ValidAfter: "1", ValidUntil: "100", MaxSponsoredCost: "1000",
+		Nonce:       "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+		ContextHash: "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+	}
 }

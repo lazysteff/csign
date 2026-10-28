@@ -73,13 +73,17 @@ func (s *KeyService) Create(ctx context.Context, req v1.CreateKeyRequest) (*doma
 	}
 
 	chainFamily := domain.NormalizeChainFamily(req.ChainFamily)
-	signerAddress, err := chain.DeriveSignerAddress(chainFamily, provisioned.PublicKey)
+	signerAddress := ""
+	if chainFamily != "" {
+		signerAddress, err = chain.DerivePublicIdentity(chainFamily, provisioned.CanonicalPublic)
+	}
 	if err != nil {
 		return nil, faults.Wrap(faults.Invalid, err)
 	}
 
 	now := s.now().UTC()
 	key := domain.Key{
+		RecordVersion: custody.RecordVersion, KeyType: provisioned.KeyType, MaterialFormat: provisioned.MaterialFormat,
 		ID:                keyID,
 		ChainFamily:       chainFamily,
 		CustodyMode:       provisioned.CustodyMode,
@@ -92,6 +96,10 @@ func (s *KeyService) Create(ctx context.Context, req v1.CreateKeyRequest) (*doma
 		ExternalSignerRef: provisioned.ExternalSignerRef,
 		CreatedAt:         now,
 		UpdatedAt:         now,
+	}
+	key, err = custody.NormalizeRecord(key)
+	if err != nil {
+		return nil, faults.New(faults.Invalid, "invalid provisioned key")
 	}
 	if err := s.repo.PutKey(ctx, key.Clone()); err != nil {
 		return nil, err

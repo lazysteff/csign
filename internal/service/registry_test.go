@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/faults"
 	"github.com/chain-signer/chain-signer/internal/signingops"
@@ -25,7 +25,7 @@ func TestDefaultOperationDescriptorsAreUnique(t *testing.T) {
 	catalog := signingops.Default()
 	registry, err := NewRegistry(catalog, DefaultOperationDescriptors(catalog))
 	require.NoError(t, err)
-	require.Len(t, registry.Routes(), 16)
+	require.Len(t, registry.Routes(), 17)
 
 	_, err = registry.Lookup("missing")
 	require.Equal(t, faults.Unsupported, faults.KindOf(err))
@@ -47,7 +47,7 @@ func TestRegistryRejectsCatalogEntriesWithoutDescriptors(t *testing.T) {
 
 	_, err := NewRegistry(catalog, DefaultOperationDescriptors(catalog))
 	require.Equal(t, faults.Internal, faults.KindOf(err))
-	require.ErrorContains(t, err, "catalog has 17 entries")
+	require.ErrorContains(t, err, "catalog has 18 entries")
 }
 
 func TestRegistryRejectsInvalidRequestFactories(t *testing.T) {
@@ -77,8 +77,11 @@ func testDescriptor(route string) OperationDescriptor {
 		SigningOperationCapability: v1.SigningOperationCapability{Route: route, Operation: "test_operation"},
 		NewRequest:                 func() any { return &v1.EVMLegacyTransferSignRequest{} },
 		Validate:                   func(domain.Key, any) error { return nil },
-		Execute: func(context.Context, custody.Material, any) (any, error) {
-			return &v1.SignResponse{}, nil
+		Normalize:                  testNormalize, CompatibleSchemes: testCapabilities(),
+		Prepare: func(context.Context, cryptography.Capability, cryptography.PublicKey, any) (*cryptography.Prepared, error) {
+			return &cryptography.Prepared{Payload: cryptography.NewPayload(cryptography.Digest, make([]byte, 32)), Format: func(_ []byte) (any, error) {
+				return &v1.SignResponse{}, nil
+			}}, nil
 		},
 	}
 }

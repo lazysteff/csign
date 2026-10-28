@@ -5,10 +5,12 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	"github.com/chain-signer/chain-signer/internal/custody"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/faults"
 	"github.com/chain-signer/chain-signer/internal/policy"
+	"github.com/chain-signer/chain-signer/internal/routes"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	"github.com/stretchr/testify/require"
 )
@@ -30,10 +32,13 @@ func TestSigningServiceOrchestratesValidationAndExecution(t *testing.T) {
 				require.Equal(t, "key-1", typed.KeyID)
 				return nil
 			},
-			Execute: func(_ context.Context, _ custody.Material, request any) (any, error) {
-				executed = true
-				typed := request.(*v1.EVMLegacyTransferSignRequest)
-				return &v1.SignResponse{KeyID: typed.KeyID}, nil
+			Normalize: testNormalize, CompatibleSchemes: testCapabilities(),
+			Prepare: func(_ context.Context, _ cryptography.Capability, _ cryptography.PublicKey, request any) (*cryptography.Prepared, error) {
+				return &cryptography.Prepared{Payload: cryptography.NewPayload(cryptography.Digest, make([]byte, 32)), Format: func(_ []byte) (any, error) {
+					executed = true
+					typed := request.(*v1.EVMLegacyTransferSignRequest)
+					return &v1.SignResponse{KeyID: typed.KeyID}, nil
+				}}, nil
 			},
 		},
 	})
@@ -68,8 +73,11 @@ func TestSigningServiceStopsOnPolicyDenial(t *testing.T) {
 			Validate: func(domain.Key, any) error {
 				return faults.New(faults.PolicyDenied, "denied")
 			},
-			Execute: func(context.Context, custody.Material, any) (any, error) {
-				return &v1.SignResponse{}, nil
+			Normalize: testNormalize, CompatibleSchemes: testCapabilities(),
+			Prepare: func(context.Context, cryptography.Capability, cryptography.PublicKey, any) (*cryptography.Prepared, error) {
+				return &cryptography.Prepared{Payload: cryptography.NewPayload(cryptography.Digest, make([]byte, 32)), Format: func(_ []byte) (any, error) {
+					return &v1.SignResponse{}, nil
+				}}, nil
 			},
 		},
 	})
@@ -97,8 +105,11 @@ func TestSigningServiceWrapsCustodyFailures(t *testing.T) {
 			SigningOperationCapability: v1.SigningOperationCapability{Route: "test/route"},
 			NewRequest:                 func() any { return &v1.EVMLegacyTransferSignRequest{} },
 			Validate:                   func(domain.Key, any) error { return nil },
-			Execute: func(context.Context, custody.Material, any) (any, error) {
-				return &v1.SignResponse{}, nil
+			Normalize:                  testNormalize, CompatibleSchemes: testCapabilities(),
+			Prepare: func(context.Context, cryptography.Capability, cryptography.PublicKey, any) (*cryptography.Prepared, error) {
+				return &cryptography.Prepared{Payload: cryptography.NewPayload(cryptography.Digest, make([]byte, 32)), Format: func(_ []byte) (any, error) {
+					return &v1.SignResponse{}, nil
+				}}, nil
 			},
 		},
 	})
@@ -131,14 +142,37 @@ func TestStructuredEVMExecutionErrorsAreSanitizedAndClassified(t *testing.T) {
 	require.EqualError(t, verificationError, "signed artifact verification failed")
 }
 
+func TestGeneralizedSigningPreservesLegacyVerificationErrorContracts(t *testing.T) {
+	for _, route := range []string{routes.EVMLegacyTransferSign, routes.EVMEIP1559TransferSign, routes.EVMContractCallSign, routes.TRXTransferSign, routes.TRC20TransferSign, routes.EVMEIP712Sign, routes.EVMERC4337UserOperationSign, routes.EVMEIP7702AuthorizationSign, routes.EVMEIP7702TransactionSign} {
+		t.Run(route, func(t *testing.T) {
+			_, registry := testOperationRegistry(t, []OperationDescriptor{testDescriptor(route)})
+			s := NewSigningService(&fakeKeyLookup{key: allowedTestKey()}, policy.DefaultEvaluator{}, fakeCustodyResolver{fn: func(context.Context, domain.Key) (custody.Material, error) {
+				return custody.ExternalMaterial{Pub: &testPrivateKey().PublicKey, SignFunc: func(context.Context, []byte) ([]byte, error) { return []byte{1}, nil }}, nil
+			}}, registry, nil)
+			_, err := s.Execute(context.Background(), route, &v1.BaseSignRequest{KeyID: "key-1"})
+			require.Equal(t, faults.Invalid, faults.KindOf(err))
+			if isStructuredEVMSignRoute(route) {
+				require.Equal(t, faults.SignatureVerificationFailed, faults.CodeOf(err))
+				require.EqualError(t, err, "signed artifact verification failed")
+			} else {
+				require.Empty(t, faults.CodeOf(err))
+				require.EqualError(t, err, "decode signature: unsupported format")
+			}
+		})
+	}
+}
+
 func TestSigningServiceRejectsInvalidKeyIDsBeforeLookup(t *testing.T) {
 	_, registry := testOperationRegistry(t, []OperationDescriptor{
 		{
 			SigningOperationCapability: v1.SigningOperationCapability{Route: "test/route"},
 			NewRequest:                 func() any { return &v1.EVMLegacyTransferSignRequest{} },
 			Validate:                   func(domain.Key, any) error { return nil },
-			Execute: func(context.Context, custody.Material, any) (any, error) {
-				return &v1.SignResponse{}, nil
+			Normalize:                  testNormalize, CompatibleSchemes: testCapabilities(),
+			Prepare: func(context.Context, cryptography.Capability, cryptography.PublicKey, any) (*cryptography.Prepared, error) {
+				return &cryptography.Prepared{Payload: cryptography.NewPayload(cryptography.Digest, make([]byte, 32)), Format: func(_ []byte) (any, error) {
+					return &v1.SignResponse{}, nil
+				}}, nil
 			},
 		},
 	})
@@ -168,7 +202,10 @@ func TestSigningServiceRejectsTypedNilRequestBeforeLookup(t *testing.T) {
 			SigningOperationCapability: v1.SigningOperationCapability{Route: "test/route"},
 			NewRequest:                 func() any { return &v1.EVMLegacyTransferSignRequest{} },
 			Validate:                   func(domain.Key, any) error { return nil },
-			Execute:                    func(context.Context, custody.Material, any) (any, error) { return &v1.SignResponse{}, nil },
+			Normalize:                  testNormalize, CompatibleSchemes: testCapabilities(),
+			Prepare: func(context.Context, cryptography.Capability, cryptography.PublicKey, any) (*cryptography.Prepared, error) {
+				return &cryptography.Prepared{Payload: cryptography.NewPayload(cryptography.Digest, make([]byte, 32)), Format: func(_ []byte) (any, error) { return &v1.SignResponse{}, nil }}, nil
+			},
 		},
 	})
 	keys := &fakeKeyLookup{}

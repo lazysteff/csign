@@ -34,6 +34,7 @@ func Production() (*Catalog, error) {
 			{Route: routes.TRONWithdrawExpireUnfreezeSign, Operation: v1.OperationTRONWithdrawExpireUnfreeze},
 			{Route: routes.TRONVoteWitnessSign, Operation: v1.OperationTRONVoteWitness},
 			{Route: routes.TRONWithdrawBalanceSign, Operation: v1.OperationTRONWithdrawBalance},
+			{Route: routes.SolanaMessageSign, Operation: v1.OperationSolanaMessage},
 		})
 	})
 	return defaultCatalog, errDefaultCatalog

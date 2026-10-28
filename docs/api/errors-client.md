@@ -59,7 +59,7 @@ The Go client is organized by capability:
 | --- | --- |
 | `Client` | `Version` |
 | `Client.Keys` | `Create`, `Read`, `List`, `SetActive`, `SetPolicy` |
-| `Client.Signing` | `SignEVMLegacyTransfer`, `SignEVMEIP1559Transfer`, `SignEVMContractCall`, `SignEVMEIP712`, `SignEVMUserOperation`, `SignEVMEIP7702Authorization`, `SignEVMEIP7702Transaction`, and the existing TRON signing methods |
+| `Client.Signing` | `SignEVMLegacyTransfer`, `SignEVMEIP1559Transfer`, `SignEVMContractCall`, `SignEVMEIP712`, `SignEVMUserOperation`, `SignEVMEIP7702Authorization`, `SignEVMEIP7702Transaction`, `SignSolanaMessage`, and the existing TRON signing methods |
 | `Client.Payloads` | `Verify`, `Recover`, `VerifyEVMEIP712`, `VerifyEVMUserOperation`, `VerifyEVMEIP7702Authorization`, `RecoverEVMEIP7702Transaction` |
 
 The Go client also includes typed request builders for the owner-based TRON routes:

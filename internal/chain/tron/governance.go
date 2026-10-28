@@ -1,14 +1,14 @@
 package tron
 
 import (
-	"context"
+	"crypto/ecdsa"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
 )
 
-func SignTRONVoteWitness(ctx context.Context, material custody.Material, req *v1.TRONVoteWitnessSignRequest) (*v1.SignResponse, error) {
+func PrepareTRONVoteWitness(pub *ecdsa.PublicKey, req *v1.TRONVoteWitnessSignRequest) (*cryptography.Prepared, error) {
 	owner, err := base58Address(req.OwnerAddress)
 	if err != nil {
 		return nil, err
@@ -28,9 +28,8 @@ func SignTRONVoteWitness(ctx context.Context, material custody.Material, req *v1
 		OwnerAddress: owner,
 		Votes:        votes,
 	}
-	return signTRONOwnerTransaction(
-		ctx,
-		material,
+	return prepareTRONOwnerTransaction(
+		pub,
 		req.KeyID,
 		req.Network,
 		req.RequestID,

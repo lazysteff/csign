@@ -1,6 +1,8 @@
 package v1
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 const (
 	APIVersion = "v1"
@@ -26,6 +28,7 @@ const (
 )
 
 type CreateKeyRequest struct {
+	KeyType           string            `json:"key_type,omitempty"`
 	KeyID             string            `json:"key_id,omitempty"`
 	ChainFamily       string            `json:"chain_family"`
 	CustodyMode       string            `json:"custody_mode,omitempty"`
@@ -68,6 +71,7 @@ type UpdateKeyStatusRequest struct {
 }
 
 type KeyResponse struct {
+	KeyType       string            `json:"key_type,omitempty"`
 	APIVersion    string            `json:"api_version"`
 	KeyID         string            `json:"key_id"`
 	ChainFamily   string            `json:"chain_family"`

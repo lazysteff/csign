@@ -1,24 +1,23 @@
 package tron
 
 import (
-	"context"
+	"crypto/ecdsa"
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
 
-func signTRONOwnerTransaction(
-	ctx context.Context,
-	material custody.Material,
+func prepareTRONOwnerTransaction(
+	pub *ecdsa.PublicKey,
 	keyID, network, requestID, operation string,
 	contractType core.Transaction_Contract_ContractType,
 	contract proto.Message,
 	envelope v1.TRONRawDataEnvelope,
-) (*v1.SignResponse, error) {
+) (*cryptography.Prepared, error) {
 	typed, err := anypb.New(contract)
 	if err != nil {
 		return nil, fmt.Errorf("wrap tron owner contract: %w", err)
@@ -36,5 +35,5 @@ func signTRONOwnerTransaction(
 	if err != nil {
 		return nil, err
 	}
-	return signTransaction(ctx, material, keyID, network, requestID, operation, tx)
+	return prepareTransaction(pub, keyID, network, requestID, operation, tx)
 }

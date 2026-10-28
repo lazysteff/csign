@@ -35,6 +35,7 @@ func TestHandleVersionIncludesSupportedRoutes(t *testing.T) {
 		"v1/keys",
 		"v1/keys/{key_id}",
 		"v1/recover",
+		"v1/solana/messages/sign",
 		"v1/tron/governance/vote_witness/sign",
 		"v1/tron/resources/delegate/sign",
 		"v1/tron/resources/freeze_v2/sign",

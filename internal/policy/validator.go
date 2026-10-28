@@ -3,6 +3,7 @@ package policy
 import (
 	"strings"
 
+	"github.com/chain-signer/chain-signer/internal/custody"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/faults"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -25,7 +26,10 @@ func (DefaultEvaluator) Validate(key domain.Key, request any, validator Validato
 
 func ValidateCreateKeyRequest(req v1.CreateKeyRequest) error {
 	chainFamily := domain.NormalizeChainFamily(req.ChainFamily)
-	if chainFamily != v1.ChainFamilyEVM && chainFamily != v1.ChainFamilyTRON {
+	if _, err := custody.CreateKeyType(req); err != nil {
+		return faults.New(faults.Invalid, err.Error())
+	}
+	if chainFamily != "" && chainFamily != v1.ChainFamilyEVM && chainFamily != v1.ChainFamilyTRON && chainFamily != v1.ChainFamilySolana {
 		return faults.Newf(faults.Invalid, "unsupported chain family %q", req.ChainFamily)
 	}
 

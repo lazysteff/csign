@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/chain-signer/chain-signer/internal/cryptography"
+	"github.com/chain-signer/chain-signer/internal/custody"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/faults"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -67,7 +69,18 @@ func (b *Backend) handleUpdateKeyPolicy(ctx context.Context, req *logical.Reques
 }
 
 func keyResponse(key domain.Key) v1.KeyResponse {
+	publicHex := key.PublicKeyHex
+	if key.KeyType == cryptography.Secp256k1 {
+		pub, err := custody.CanonicalPublicKey(key)
+		if err == nil {
+			p, err := cryptography.ECDSAPublicKey(pub)
+			if err == nil {
+				publicHex = custody.PublicKeyHex(p)
+			}
+		}
+	}
 	return v1.KeyResponse{
+		KeyType:       string(key.KeyType),
 		APIVersion:    v1.APIVersion,
 		KeyID:         key.ID,
 		ChainFamily:   key.ChainFamily,
@@ -76,7 +89,7 @@ func keyResponse(key domain.Key) v1.KeyResponse {
 		Labels:        key.Labels,
 		Policy:        key.Policy,
 		SignerAddress: key.SignerAddress,
-		PublicKeyHex:  key.PublicKeyHex,
+		PublicKeyHex:  publicHex,
 		CreatedAt:     key.CreatedAt.Format(time.RFC3339Nano),
 		UpdatedAt:     key.UpdatedAt.Format(time.RFC3339Nano),
 	}

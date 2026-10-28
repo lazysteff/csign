@@ -7,7 +7,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/chain-signer/chain-signer/internal/chain"
+	"github.com/chain-signer/chain-signer/internal/custody"
 	"github.com/chain-signer/chain-signer/internal/domain"
+	enc "github.com/chain-signer/chain-signer/internal/encoding"
+	"github.com/chain-signer/chain-signer/internal/keyid"
 	"github.com/chain-signer/chain-signer/internal/policy"
 	"github.com/chain-signer/chain-signer/internal/signingops"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -39,6 +43,10 @@ func (r *VaultKeyRepository) PutKey(ctx context.Context, key domain.Key) error {
 	if err := policy.ValidateStoredPolicy(r.catalog, key.Policy); err != nil {
 		return fmt.Errorf("validate key %q policy: %w", key.ID, err)
 	}
+	key, err := r.normalize(key, key.ID)
+	if err != nil {
+		return err
+	}
 	entry, err := logical.StorageEntryJSON(keyPath(key.ID), key)
 	if err != nil {
 		return fmt.Errorf("encode key %q: %w", key.ID, err)
@@ -58,8 +66,12 @@ func (r *VaultKeyRepository) GetKey(ctx context.Context, keyID string) (*domain.
 		return nil, ErrKeyNotFound
 	}
 	var key domain.Key
-	if err := entry.DecodeJSON(&key); err != nil {
+	if err := enc.StrictUnmarshalJSON(entry.Value, &key); err != nil {
 		return nil, fmt.Errorf("%w: decode key %q: %w", ErrInvalidPolicyRecord, keyID, err)
+	}
+	key, err = r.normalize(key, keyID)
+	if err != nil {
+		return nil, err
 	}
 	return &key, nil
 }
@@ -96,4 +108,28 @@ func (r *VaultKeyRepository) listKeyIDs(ctx context.Context, prefix, keyIDPrefix
 
 func keyPath(keyID string) string {
 	return keyPrefix + keyID
+}
+
+func (r *VaultKeyRepository) normalize(key domain.Key, id string) (domain.Key, error) {
+	invalid := func() (domain.Key, error) { return domain.Key{}, ErrInvalidPolicyRecord }
+	if key.ID != id || keyid.Validate(id) != nil || policy.ValidateStoredPolicy(r.catalog, key.Policy) != nil {
+		return invalid()
+	}
+	normalized, err := custody.NormalizeRecord(key)
+	if err != nil {
+		return invalid()
+	}
+	if normalized.ChainFamily != "" {
+		pub, err := custody.CanonicalPublicKey(normalized)
+		if err != nil {
+			return invalid()
+		}
+		address, err := chain.DerivePublicIdentity(normalized.ChainFamily, pub)
+		if err != nil || !chain.EqualAddress(normalized.ChainFamily, address, normalized.SignerAddress) {
+			return invalid()
+		}
+	} else if normalized.SignerAddress != "" {
+		return invalid()
+	}
+	return normalized, nil
 }

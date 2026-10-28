@@ -27,7 +27,17 @@ type SigningOperationCapability struct {
 	Operation string `json:"operation"`
 }
 
+type SigningOperationDetail struct {
+	Route              string   `json:"route"`
+	Operation          string   `json:"operation"`
+	SecurityModel      string   `json:"security_model"`
+	SigningSchemes     []string `json:"signing_schemes"`
+	CompatibleKeyTypes []string `json:"compatible_key_types"`
+	SignatureEncodings []string `json:"signature_encodings"`
+}
 type VersionResponse struct {
+	SigningOperationDetails []SigningOperationDetail `json:"signing_operation_details,omitempty"`
+
 	APIVersion                           string                         `json:"api_version"`
 	BuildVersion                         string                         `json:"build_version"`
 	SupportedRoutes                      []string                       `json:"supported_routes,omitempty"`

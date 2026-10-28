@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/faults"
 	"github.com/chain-signer/chain-signer/internal/signingops"
@@ -38,9 +38,12 @@ func genericDescriptor(entry v1.SigningOperationCapability, validated, executed 
 			*validated = true
 			return nil
 		},
-		Execute: func(context.Context, custody.Material, any) (any, error) {
-			*executed = true
-			return "ok", nil
+		Normalize: testNormalize, CompatibleSchemes: testCapabilities(),
+		Prepare: func(context.Context, cryptography.Capability, cryptography.PublicKey, any) (*cryptography.Prepared, error) {
+			return &cryptography.Prepared{Payload: cryptography.NewPayload(cryptography.Digest, make([]byte, 32)), Format: func(_ []byte) (any, error) {
+				*executed = true
+				return "ok", nil
+			}}, nil
 		},
 	}
 }

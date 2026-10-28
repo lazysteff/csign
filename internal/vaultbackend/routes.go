@@ -41,7 +41,7 @@ func (b *Backend) routeRegistrations() []pathRegistration {
 				Operations: map[logical.Operation]framework.OperationHandler{
 					logical.UpdateOperation: &framework.PathOperation{
 						Callback: b.handleCreateKey,
-						Summary:  "Create or import a chain-bound signing key.",
+						Summary:  "Create or import a managed signing key with an optional protocol binding.",
 					},
 					logical.ListOperation: &framework.PathOperation{
 						Callback: b.handleListKeys,

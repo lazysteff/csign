@@ -13,6 +13,7 @@ import (
 func (b *Backend) handleVersion(_ context.Context, _ *logical.Request, _ *framework.FieldData) (*logical.Response, error) {
 	schemas, protocols, accounts, signingSchemas, authorizationSchemas, transactionTypes := advancedregistry.Default().Capabilities()
 	return response(v1.VersionResponse{
+		SigningOperationDetails:              b.registry.OperationDetails(),
 		APIVersion:                           v1.APIVersion,
 		BuildVersion:                         version.Version,
 		SupportedRoutes:                      registeredPublicRoutes(b.routes),

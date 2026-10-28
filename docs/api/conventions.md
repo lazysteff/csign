@@ -30,6 +30,7 @@ Vault wraps plugin responses under the normal Vault top-level envelope. The plug
 
 ### Signing
 
+- `POST v1/solana/messages/sign`
 - `POST v1/evm/transfers/legacy/sign`
 - `POST v1/evm/transfers/eip1559/sign`
 - `POST v1/evm/contracts/eip1559/sign`
@@ -60,7 +61,7 @@ Vault wraps plugin responses under the normal Vault top-level envelope. The plug
 
 ### `GET v1/version`
 
-Returns the plugin build version and typed protocol-capability contract.
+Returns the plugin build version, existing operation catalog and protocol capabilities, plus descriptive `signing_operation_details`: route, operation, security model, signing schemes, compatible key types and signature encodings. Input kinds are internal and non-selectable. Discovery never grants operation authorization.
 
 Response type: `VersionResponse`
 
@@ -70,6 +71,7 @@ Response type: `VersionResponse`
 | `build_version` | string | Plugin build identifier. |
 | `supported_routes` | array of string | Lexicographically sorted public mount-relative routes exposed by the plugin. |
 | `supported_signing_operations` | array of `SigningOperationCapability` | Canonical registered signing route and exact policy operation identifier. This describes compiled support, not Vault ACL access, per-key enablement, external custody availability, or deployment readiness. |
+| `signing_operation_details` | array of `SigningOperationDetail` | Descriptive security model (`typed_semantic` or `opaque`), compatible key types, signing schemes and signature encodings for each registered operation. These details grant no authorization and expose no selectable input kind. |
 | `supported_eip712_schemas` | array of `EIP712SchemaCapability` | Registered schema ID, version, fixed primary type, and signature encoding, including ERC-2612 Permit and verifying-Paymaster approval schemas. |
 | `supported_erc4337_protocol_versions` | array of string | Supported UserOperation protocol identifiers. Currently `erc4337-v0.9`. |
 | `supported_account_implementations` | array of `ERC4337AccountCapability` | Account implementation/version, compatible protocols, signing schemas, and signature encoding. |
@@ -82,10 +84,11 @@ Callers should check `supported_signing_operations` and the relevant versioned p
 
 ## Data conventions
 
-- `chain_family` must be `evm` or `tron`.
+- Signing requests assert the protocol registered for their endpoint: `evm`, `tron`, or `solana`. Key creation accepts an optional restrictive protocol binding when `key_type` is explicit; historical EVM/TRON creation requests may omit `key_type`.
 - `custody_mode` must be `mvp` or `pkcs11`.
 - EVM addresses are hex addresses. The plugin normalizes them before comparison.
 - TRON addresses are Base58 addresses.
+- Solana signer addresses are base58 encodings of the resolved raw Ed25519 public key. The optional `expected_signer_address` is an assertion, never a key selector.
 - TRX and TRC-20 `memo_hex` values are optional plain or `0x`-prefixed hexadecimal bytes. They are decoded into `TransactionRaw.data` without UTF-8 interpretation. Memo data is public on-chain.
 - Direct-transaction numeric strings such as EVM `value`, `gas_price`, and `max_fee_per_gas`, plus TRC-20 `amount`, accept decimal values and `0x`-prefixed hexadecimal. EVM transaction values are parsed as unsigned uint256 values; negative, malformed, or overflowing values are rejected.
 - Every wide protocol quantity on typed-data, account-abstraction, and authorization routes is a canonical base-10 string. It must contain only digits and must not contain a sign, whitespace, a hexadecimal prefix, or a leading zero unless the entire value is `"0"`. Small discriminators such as `y_parity` and capability `number` remain JSON numbers.
@@ -95,6 +98,7 @@ Callers should check `supported_signing_operations` and the relevant versioned p
 - `signed_payload` is always returned as a hex string and `payload_encoding` is currently always `hex`.
 - `request_id`, `approval_ref`, and `labels` are accepted on direct EOA and TRON transaction requests as caller metadata. They are not echoed back in `SignResponse` values. Typed-data, account-abstraction, and authorization requests require a non-empty `request_id`, and their responses echo it.
 - Key responses never include `private_key_hex`.
+- Solana opaque signing returns a detached `signature_hex` with separate `signing_scheme` and `signature_encoding`, rather than a signed transaction payload. Its resource limits and policy guarantees are documented in [Solana](solana.md).
 - Hierarchical slash-delimited `key_id` values are supported end-to-end across create/import, read, list, status mutation, and signing.
 - A valid `key_id` is one or more non-empty slash-delimited segments.
 - Invalid `key_id` values are rejected if they are empty, start with `/`, end with `/`, contain an empty segment, or contain `.` or `..` as a segment.

@@ -1,5 +1,17 @@
 # Changelog
 
+## v2.0.0 - 2026-10-28
+
+- Separate managed key types, signing schemes, internal input capabilities, protocol identity and custody execution.
+- Migrate existing EVM/TRON operations through normalized input, deterministic compatibility resolution, frozen payload preparation and verified signatures.
+- Add versioned managed records with strict legacy compatibility and lossless mutation.
+- Add generic managed Ed25519 and explicitly authorized opaque `solana_message` signing, returning one detached signature per call.
+- Add descriptive operation security-model discovery and architecture, migration and Gateway conformance tests.
+- Update go-ethereum to v1.17.10, gotron-sdk to v0.27.1, compatible transitive dependencies and release lint tooling to v2.15.0.
+- Preserve legacy external resolver public-key encoding and EVM/TRON verification error classifications across generalized execution.
+
+Existing EVM/TRON `/v1` requests, operation identifiers, key IDs and signing policies remain supported. Key responses add `key_type`; strict clients must allow the new discovery and response fields. Reads and signing do not migrate persisted keys. New keys and subsequent administrative mutations use schema version 2; take a Vault storage backup before upgrading and restore a compatible snapshot before rolling back to v1. Opaque Solana signing enforces operation authorization but does not enforce transaction instruction or amount semantics. See [signing architecture and migration](docs/SIGNING_ARCHITECTURE.md).
+
 ## v1.3.1 - 2026-09-28
 
 Refresh remaining indirect dependencies and correct module exclusions.

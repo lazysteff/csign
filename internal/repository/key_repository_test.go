@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/chain-signer/chain-signer/internal/chain/evm"
+	"github.com/chain-signer/chain-signer/internal/custody"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	"github.com/chain-signer/chain-signer/internal/faults"
 	"github.com/chain-signer/chain-signer/internal/signingops"
@@ -17,8 +19,8 @@ func TestVaultKeyRepositoryPutGetList(t *testing.T) {
 	storage := new(logical.InmemStorage)
 	repo := NewVaultKeyRepository(storage, signingops.Default())
 
-	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "key-b"}))
-	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "key-a"}))
+	require.NoError(t, repo.PutKey(ctx, repositoryTestKey(t, "key-b")))
+	require.NoError(t, repo.PutKey(ctx, repositoryTestKey(t, "key-a")))
 
 	key, err := repo.GetKey(ctx, "key-a")
 	require.NoError(t, err)
@@ -38,9 +40,9 @@ func TestVaultKeyRepositoryListNestedKeyIDs(t *testing.T) {
 	storage := new(logical.InmemStorage)
 	repo := NewVaultKeyRepository(storage, signingops.Default())
 
-	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "gateway/tron/main/hot"}))
-	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "gateway/ton/signing/default"}))
-	require.NoError(t, repo.PutKey(ctx, domain.Key{ID: "status/foo/bar"}))
+	require.NoError(t, repo.PutKey(ctx, repositoryTestKey(t, "gateway/tron/main/hot")))
+	require.NoError(t, repo.PutKey(ctx, repositoryTestKey(t, "gateway/ton/signing/default")))
+	require.NoError(t, repo.PutKey(ctx, repositoryTestKey(t, "status/foo/bar")))
 
 	ids, err := repo.ListKeyIDs(ctx)
 	require.NoError(t, err)
@@ -82,4 +84,11 @@ func TestVaultKeyRepositoryRejectsInvalidOperationPolicies(t *testing.T) {
 		require.NoError(t, readErr)
 		require.Nil(t, entry)
 	}
+}
+
+func repositoryTestKey(t *testing.T, id string) domain.Key {
+	t.Helper()
+	p, err := custody.ProvisionCreateRequest(v1.CreateKeyRequest{ChainFamily: "evm"})
+	require.NoError(t, err)
+	return domain.Key{ID: id, ChainFamily: "evm", CustodyMode: "mvp", PublicKeyHex: p.PublicKeyHex, PrivateKeyHex: p.PrivateKeyHex, SignerAddress: evm.DeriveAddress(p.PublicKey)}
 }

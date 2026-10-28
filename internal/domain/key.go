@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 )
 
@@ -18,18 +19,21 @@ const (
 )
 
 type Key struct {
-	ID                string            `json:"id"`
-	ChainFamily       string            `json:"chain_family"`
-	CustodyMode       string            `json:"custody_mode"`
-	Active            bool              `json:"active"`
-	Labels            map[string]string `json:"labels,omitempty"`
-	Policy            v1.Policy         `json:"policy,omitempty"`
-	SignerAddress     string            `json:"signer_address"`
-	PublicKeyHex      string            `json:"public_key_hex"`
-	PrivateKeyHex     string            `json:"private_key_hex,omitempty"`
-	ExternalSignerRef string            `json:"external_signer_ref,omitempty"`
-	CreatedAt         time.Time         `json:"created_at"`
-	UpdatedAt         time.Time         `json:"updated_at"`
+	RecordVersion     int                  `json:"schema_version,omitempty"`
+	KeyType           cryptography.KeyType `json:"key_type,omitempty"`
+	MaterialFormat    string               `json:"material_format,omitempty"`
+	ID                string               `json:"id"`
+	ChainFamily       string               `json:"chain_family"`
+	CustodyMode       string               `json:"custody_mode"`
+	Active            bool                 `json:"active"`
+	Labels            map[string]string    `json:"labels,omitempty"`
+	Policy            v1.Policy            `json:"policy,omitempty"`
+	SignerAddress     string               `json:"signer_address"`
+	PublicKeyHex      string               `json:"public_key_hex"`
+	PrivateKeyHex     string               `json:"private_key_hex,omitempty"`
+	ExternalSignerRef string               `json:"external_signer_ref,omitempty"`
+	CreatedAt         time.Time            `json:"created_at"`
+	UpdatedAt         time.Time            `json:"updated_at"`
 }
 
 // Clone isolates mutable request/repository collections at service boundaries.

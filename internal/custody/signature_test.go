@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"errors"
-	"math/big"
 	"testing"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -47,16 +46,6 @@ func TestRecoverableSignatureAndRecoverAddress(t *testing.T) {
 	}, digest)
 	require.NoError(t, err)
 	require.Len(t, sig, 65)
-}
-
-func TestNormalizeLowSAndSignatureBytes(t *testing.T) {
-	curveOrder := ethcrypto.S256().Params().N
-	s := new(big.Int).Sub(curveOrder, big.NewInt(1))
-	normalized := normalizeLowS(s)
-	require.True(t, normalized.Cmp(s) < 0)
-
-	out := signatureBytes(big.NewInt(1), big.NewInt(2))
-	require.Len(t, out, 64)
 }
 
 func TestRecoverableSignatureRejectsMalformedExternalMaterialWithoutPanicking(t *testing.T) {

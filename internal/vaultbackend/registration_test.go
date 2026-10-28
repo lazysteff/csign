@@ -19,6 +19,7 @@ func TestBackendRoutesAndVerbsStayPinned(t *testing.T) {
 		routes.KeyStatusRoot + `/` + framework.MatchAllRegex("key_id"): {logical.UpdateOperation},
 		routes.KeyPolicyRoot + `/` + framework.MatchAllRegex("key_id"): {logical.UpdateOperation},
 		routes.Keys + `/` + framework.MatchAllRegex("key_id"):          {logical.ReadOperation},
+		routes.SolanaMessageSign:                                       {logical.UpdateOperation},
 		routes.EVMLegacyTransferSign:                                   {logical.UpdateOperation},
 		routes.EVMEIP1559TransferSign:                                  {logical.UpdateOperation},
 		routes.EVMContractCallSign:                                     {logical.UpdateOperation},

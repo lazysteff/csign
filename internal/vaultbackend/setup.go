@@ -60,7 +60,7 @@ func newBackendWithCatalog(resolver custody.ExternalResolver, catalog *signingop
 		return nil, err
 	}
 	b.Backend = &framework.Backend{
-		Help:        "Chain-Signer is a typed signing backend for EVM and TRON workloads.",
+		Help:        "Chain-Signer is an operation-authorized signing backend with typed and opaque protocol operations.",
 		BackendType: logical.TypeLogical,
 		Paths:       registeredPaths(b.routes),
 	}

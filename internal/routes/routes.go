@@ -3,13 +3,14 @@ package routes
 import "github.com/chain-signer/chain-signer/internal/keyid"
 
 const (
-	Version       = "v1/version"
-	Keys          = "v1/keys"
-	KeyStatusRoot = "v1/key-status"
-	KeyPolicyRoot = "v1/key-policy"
-	KeyPath       = "v1/keys/{key_id}"
-	KeyStatusPath = "v1/key-status/{key_id}"
-	KeyPolicyPath = "v1/key-policy/{key_id}"
+	SolanaMessageSign = "v1/solana/messages/sign"
+	Version           = "v1/version"
+	Keys              = "v1/keys"
+	KeyStatusRoot     = "v1/key-status"
+	KeyPolicyRoot     = "v1/key-policy"
+	KeyPath           = "v1/keys/{key_id}"
+	KeyStatusPath     = "v1/key-status/{key_id}"
+	KeyPolicyPath     = "v1/key-policy/{key_id}"
 
 	EVMLegacyTransferSign          = "v1/evm/transfers/legacy/sign"
 	EVMEIP1559TransferSign         = "v1/evm/transfers/eip1559/sign"

@@ -13,7 +13,7 @@ func TestDefaultCatalogIsImmutableAndConcurrentSafe(t *testing.T) {
 	require.NoError(t, err)
 	require.Same(t, catalog, Default())
 	original := catalog.Entries()
-	require.Len(t, original, 16)
+	require.Len(t, original, 17)
 
 	changed := catalog.Entries()
 	changed[0].Route = "mutated"

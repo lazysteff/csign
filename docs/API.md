@@ -10,6 +10,8 @@ The reference is organized by responsibility so each page stays focused and read
 - [Signing-operation policy](api/signing-operations.md) — authoritative operation registry, default-deny semantics, Paymaster control-key profile, and rollout requirements.
 - [EVM](api/evm.md) — capability index for direct EOA transactions, EIP-712 Permit, ERC-4337, and EIP-7702.
 - [TRON](api/tron.md) — supported signing routes and links to the detailed protobuf contract reference.
+- [Solana opaque message signing](api/solana.md) — single-key detached Ed25519 signatures.
+- [Signing architecture and security model](SIGNING_ARCHITECTURE.md) — typed semantic versus opaque signing and record compatibility.
 - [Verification and recovery](api/verification.md) — generic transaction-payload inspection; structured protocol inspection is documented with each [EVM capability](api/evm.md).
 - [Policy, ACLs, and custody boundaries](api/policy.md) — policy fields, enforcement, Vault ACL examples, and live-chain responsibilities.
 - [Errors and Go client](api/errors-client.md) — HTTP/error-code behavior and typed client methods.
@@ -23,6 +25,7 @@ The reference is organized by responsibility so each page stays focused and read
 | Signing policy | Every key-backed `.../sign` route | [Signing-operation policy](api/signing-operations.md) |
 | EVM signing | `POST v1/evm/.../sign` | [EVM](api/evm.md) |
 | TRON signing | `POST v1/tron/.../sign` | [TRON](api/tron.md) |
+| Solana opaque signing | `POST v1/solana/messages/sign` | [Solana](api/solana.md) |
 | Payload inspection | `POST v1/verify`, `POST v1/recover` | [Verification and recovery](api/verification.md) |
 | Structured EVM inspection | EIP-712, ERC-4337, and EIP-7702 verify/recover routes | [EVM](api/evm.md) |
 

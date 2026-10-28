@@ -1,12 +1,11 @@
 package evm
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	enc "github.com/chain-signer/chain-signer/internal/encoding"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -38,7 +37,7 @@ func EqualAddress(left, right string) bool {
 	return nl == nr
 }
 
-func SignLegacyTransfer(ctx context.Context, material custody.Material, req *v1.EVMLegacyTransferSignRequest) (*v1.SignResponse, error) {
+func PrepareLegacyTransfer(pub *ecdsa.PublicKey, req *v1.EVMLegacyTransferSignRequest) (*cryptography.Prepared, error) {
 	to := ethcommon.HexToAddress(req.To)
 	value, err := enc.ParseEVMUint256(req.Value)
 	if err != nil {
@@ -55,10 +54,10 @@ func SignLegacyTransfer(ctx context.Context, material custody.Material, req *v1.
 		To:       &to,
 		Value:    value,
 	})
-	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationEVMTransferLegacy, big.NewInt(req.ChainID), tx)
+	return prepareTransaction(pub, req.KeyID, req.Network, req.RequestID, v1.OperationEVMTransferLegacy, big.NewInt(req.ChainID), tx)
 }
 
-func SignEIP1559Transfer(ctx context.Context, material custody.Material, req *v1.EVMEIP1559TransferSignRequest) (*v1.SignResponse, error) {
+func PrepareEIP1559Transfer(pub *ecdsa.PublicKey, req *v1.EVMEIP1559TransferSignRequest) (*cryptography.Prepared, error) {
 	to := ethcommon.HexToAddress(req.To)
 	value, err := enc.ParseEVMUint256(req.Value)
 	if err != nil {
@@ -81,10 +80,10 @@ func SignEIP1559Transfer(ctx context.Context, material custody.Material, req *v1
 		To:        &to,
 		Value:     value,
 	})
-	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationEVMTransferEIP1559, big.NewInt(req.ChainID), tx)
+	return prepareTransaction(pub, req.KeyID, req.Network, req.RequestID, v1.OperationEVMTransferEIP1559, big.NewInt(req.ChainID), tx)
 }
 
-func SignContractCall(ctx context.Context, material custody.Material, req *v1.EVMContractCallSignRequest) (*v1.SignResponse, error) {
+func PrepareContractCall(pub *ecdsa.PublicKey, req *v1.EVMContractCallSignRequest) (*cryptography.Prepared, error) {
 	to := ethcommon.HexToAddress(req.To)
 	value, err := enc.ParseEVMUint256(req.Value)
 	if err != nil {
@@ -112,7 +111,7 @@ func SignContractCall(ctx context.Context, material custody.Material, req *v1.EV
 		Value:     value,
 		Data:      data,
 	})
-	return signTransaction(ctx, material, req.KeyID, req.Network, req.RequestID, v1.OperationEVMContractEIP1559, big.NewInt(req.ChainID), tx)
+	return prepareTransaction(pub, req.KeyID, req.Network, req.RequestID, v1.OperationEVMContractEIP1559, big.NewInt(req.ChainID), tx)
 }
 
 func Recover(req v1.VerifyRequest) (*v1.RecoverResponse, error) {
@@ -146,41 +145,39 @@ func Recover(req v1.VerifyRequest) (*v1.RecoverResponse, error) {
 	}, nil
 }
 
-func signTransaction(ctx context.Context, material custody.Material, keyID, network, requestID, operation string, chainID *big.Int, tx *ethtypes.Transaction) (*v1.SignResponse, error) {
+func prepareTransaction(pub *ecdsa.PublicKey, keyID, network, requestID, operation string, chainID *big.Int, tx *ethtypes.Transaction) (*cryptography.Prepared, error) {
 	signer := ethtypes.LatestSignerForChainID(chainID)
 	digest := signer.Hash(tx)
-	signature, err := custody.RecoverableSignature(ctx, material, digest.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	signedTx, err := tx.WithSignature(signer, signature)
-	if err != nil {
-		return nil, fmt.Errorf("attach evm signature: %w", err)
-	}
-	recovered, err := ethtypes.Sender(signer, signedTx)
-	if err != nil {
-		return nil, fmt.Errorf("verify evm signature: %w", err)
-	}
-	expectedSigner := DeriveAddress(material.PublicKey())
-	if !EqualAddress(recovered.Hex(), expectedSigner) {
-		return nil, fmt.Errorf("verify evm signature: recovered signer mismatch")
-	}
-	raw, err := signedTx.MarshalBinary()
-	if err != nil {
-		return nil, fmt.Errorf("marshal evm signed payload: %w", err)
-	}
-	return &v1.SignResponse{
-		APIVersion:      v1.APIVersion,
-		RequestID:       requestID,
-		KeyID:           keyID,
-		ChainFamily:     v1.ChainFamilyEVM,
-		Network:         network,
-		Operation:       operation,
-		SignerAddress:   recovered.Hex(),
-		TxHash:          signedTx.Hash().Hex(),
-		SignedPayload:   enc.EncodeHex(raw),
-		PayloadEncoding: domain.PayloadEncodingHex,
-	}, nil
+	return &cryptography.Prepared{Payload: cryptography.NewPayload(cryptography.Digest, digest.Bytes()), Format: func(signature []byte) (any, error) {
+		signedTx, err := tx.WithSignature(signer, signature)
+		if err != nil {
+			return nil, fmt.Errorf("attach evm signature: %w", err)
+		}
+		recovered, err := ethtypes.Sender(signer, signedTx)
+		if err != nil {
+			return nil, fmt.Errorf("verify evm signature: %w", err)
+		}
+		expectedSigner := DeriveAddress(pub)
+		if !EqualAddress(recovered.Hex(), expectedSigner) {
+			return nil, fmt.Errorf("verify evm signature: recovered signer mismatch")
+		}
+		raw, err := signedTx.MarshalBinary()
+		if err != nil {
+			return nil, fmt.Errorf("marshal evm signed payload: %w", err)
+		}
+		return &v1.SignResponse{
+			APIVersion:      v1.APIVersion,
+			RequestID:       requestID,
+			KeyID:           keyID,
+			ChainFamily:     v1.ChainFamilyEVM,
+			Network:         network,
+			Operation:       operation,
+			SignerAddress:   recovered.Hex(),
+			TxHash:          signedTx.Hash().Hex(),
+			SignedPayload:   enc.EncodeHex(raw),
+			PayloadEncoding: domain.PayloadEncodingHex,
+		}, nil
+	}}, nil
 }
 
 func classifyOperation(tx *ethtypes.Transaction) string {

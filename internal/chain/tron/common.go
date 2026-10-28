@@ -1,12 +1,11 @@
 package tron
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	"github.com/chain-signer/chain-signer/internal/domain"
 	enc "github.com/chain-signer/chain-signer/internal/encoding"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
@@ -106,37 +105,35 @@ func validateTransactionSize(tx *core.Transaction) error {
 	return nil
 }
 
-func signTransaction(ctx context.Context, material custody.Material, keyID, network, requestID, operation string, tx *core.Transaction) (*v1.SignResponse, error) {
+func prepareTransaction(pub *ecdsa.PublicKey, keyID, network, requestID, operation string, tx *core.Transaction) (*cryptography.Prepared, error) {
 	rawData, err := proto.Marshal(tx.GetRawData())
 	if err != nil {
 		return nil, fmt.Errorf("marshal tron raw data: %w", err)
 	}
 	digest := sha256.Sum256(rawData)
-	signature, err := custody.RecoverableSignature(ctx, material, digest[:])
-	if err != nil {
-		return nil, err
-	}
-	tx.Signature = append(tx.Signature, signature)
-	signedPayload, err := proto.Marshal(tx)
-	if err != nil {
-		return nil, fmt.Errorf("marshal tron signed payload: %w", err)
-	}
-	txID, err := txcore.TransactionID(tx)
-	if err != nil {
-		return nil, err
-	}
-	return &v1.SignResponse{
-		APIVersion:      v1.APIVersion,
-		RequestID:       requestID,
-		KeyID:           keyID,
-		ChainFamily:     v1.ChainFamilyTRON,
-		Network:         network,
-		Operation:       operation,
-		SignerAddress:   DeriveAddress(material.PublicKey()),
-		TxHash:          txID,
-		SignedPayload:   enc.EncodeHex(signedPayload),
-		PayloadEncoding: domain.PayloadEncodingHex,
-	}, nil
+	return &cryptography.Prepared{Payload: cryptography.NewPayload(cryptography.Digest, digest[:]), Format: func(signature []byte) (any, error) {
+		tx.Signature = append(tx.Signature, signature)
+		signedPayload, err := proto.Marshal(tx)
+		if err != nil {
+			return nil, fmt.Errorf("marshal tron signed payload: %w", err)
+		}
+		txID, err := txcore.TransactionID(tx)
+		if err != nil {
+			return nil, err
+		}
+		return &v1.SignResponse{
+			APIVersion:      v1.APIVersion,
+			RequestID:       requestID,
+			KeyID:           keyID,
+			ChainFamily:     v1.ChainFamilyTRON,
+			Network:         network,
+			Operation:       operation,
+			SignerAddress:   DeriveAddress(pub),
+			TxHash:          txID,
+			SignedPayload:   enc.EncodeHex(signedPayload),
+			PayloadEncoding: domain.PayloadEncodingHex,
+		}, nil
+	}}, nil
 }
 
 func base58Address(value string) ([]byte, error) {

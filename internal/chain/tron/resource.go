@@ -1,14 +1,14 @@
 package tron
 
 import (
-	"context"
+	"crypto/ecdsa"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
+	"github.com/chain-signer/chain-signer/internal/cryptography"
 	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
 )
 
-func SignTRONFreezeBalanceV2(ctx context.Context, material custody.Material, req *v1.TRONFreezeBalanceV2SignRequest) (*v1.SignResponse, error) {
+func PrepareTRONFreezeBalanceV2(pub *ecdsa.PublicKey, req *v1.TRONFreezeBalanceV2SignRequest) (*cryptography.Prepared, error) {
 	owner, err := base58Address(req.OwnerAddress)
 	if err != nil {
 		return nil, err
@@ -22,9 +22,8 @@ func SignTRONFreezeBalanceV2(ctx context.Context, material custody.Material, req
 		FrozenBalance: req.Amount,
 		Resource:      resource,
 	}
-	return signTRONOwnerTransaction(
-		ctx,
-		material,
+	return prepareTRONOwnerTransaction(
+		pub,
 		req.KeyID,
 		req.Network,
 		req.RequestID,
@@ -35,7 +34,7 @@ func SignTRONFreezeBalanceV2(ctx context.Context, material custody.Material, req
 	)
 }
 
-func SignTRONUnfreezeBalanceV2(ctx context.Context, material custody.Material, req *v1.TRONUnfreezeBalanceV2SignRequest) (*v1.SignResponse, error) {
+func PrepareTRONUnfreezeBalanceV2(pub *ecdsa.PublicKey, req *v1.TRONUnfreezeBalanceV2SignRequest) (*cryptography.Prepared, error) {
 	owner, err := base58Address(req.OwnerAddress)
 	if err != nil {
 		return nil, err
@@ -49,9 +48,8 @@ func SignTRONUnfreezeBalanceV2(ctx context.Context, material custody.Material, r
 		UnfreezeBalance: req.Amount,
 		Resource:        resource,
 	}
-	return signTRONOwnerTransaction(
-		ctx,
-		material,
+	return prepareTRONOwnerTransaction(
+		pub,
 		req.KeyID,
 		req.Network,
 		req.RequestID,
@@ -62,7 +60,7 @@ func SignTRONUnfreezeBalanceV2(ctx context.Context, material custody.Material, r
 	)
 }
 
-func SignTRONDelegateResource(ctx context.Context, material custody.Material, req *v1.TRONDelegateResourceSignRequest) (*v1.SignResponse, error) {
+func PrepareTRONDelegateResource(pub *ecdsa.PublicKey, req *v1.TRONDelegateResourceSignRequest) (*cryptography.Prepared, error) {
 	owner, err := base58Address(req.OwnerAddress)
 	if err != nil {
 		return nil, err
@@ -83,9 +81,8 @@ func SignTRONDelegateResource(ctx context.Context, material custody.Material, re
 		Lock:            req.Lock,
 		LockPeriod:      req.LockPeriod,
 	}
-	return signTRONOwnerTransaction(
-		ctx,
-		material,
+	return prepareTRONOwnerTransaction(
+		pub,
 		req.KeyID,
 		req.Network,
 		req.RequestID,
@@ -96,7 +93,7 @@ func SignTRONDelegateResource(ctx context.Context, material custody.Material, re
 	)
 }
 
-func SignTRONUndelegateResource(ctx context.Context, material custody.Material, req *v1.TRONUndelegateResourceSignRequest) (*v1.SignResponse, error) {
+func PrepareTRONUndelegateResource(pub *ecdsa.PublicKey, req *v1.TRONUndelegateResourceSignRequest) (*cryptography.Prepared, error) {
 	owner, err := base58Address(req.OwnerAddress)
 	if err != nil {
 		return nil, err
@@ -115,9 +112,8 @@ func SignTRONUndelegateResource(ctx context.Context, material custody.Material, 
 		Balance:         req.Amount,
 		ReceiverAddress: receiver,
 	}
-	return signTRONOwnerTransaction(
-		ctx,
-		material,
+	return prepareTRONOwnerTransaction(
+		pub,
 		req.KeyID,
 		req.Network,
 		req.RequestID,
@@ -128,7 +124,7 @@ func SignTRONUndelegateResource(ctx context.Context, material custody.Material, 
 	)
 }
 
-func SignTRONWithdrawExpireUnfreeze(ctx context.Context, material custody.Material, req *v1.TRONWithdrawExpireUnfreezeSignRequest) (*v1.SignResponse, error) {
+func PrepareTRONWithdrawExpireUnfreeze(pub *ecdsa.PublicKey, req *v1.TRONWithdrawExpireUnfreezeSignRequest) (*cryptography.Prepared, error) {
 	owner, err := base58Address(req.OwnerAddress)
 	if err != nil {
 		return nil, err
@@ -136,9 +132,8 @@ func SignTRONWithdrawExpireUnfreeze(ctx context.Context, material custody.Materi
 	contract := &core.WithdrawExpireUnfreezeContract{
 		OwnerAddress: owner,
 	}
-	return signTRONOwnerTransaction(
-		ctx,
-		material,
+	return prepareTRONOwnerTransaction(
+		pub,
 		req.KeyID,
 		req.Network,
 		req.RequestID,

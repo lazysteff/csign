@@ -10,7 +10,7 @@ The `policy` object is attached to a key and enforced at sign time.
 | --- | --- | --- | --- |
 | `allowed_networks` | array of string | all | Allowed `network` values. |
 | `allowed_chain_ids` | array of int64 | EVM | Allowed `chain_id` values. |
-| `max_value` | string | all | Maximum native or token amount. |
+| `max_value` | string | typed EVM/TRON operations that expose an amount | Maximum native or token amount. Does not constrain opaque Solana messages. |
 | `max_gas_limit` | uint64 | EVM | Maximum gas limit. |
 | `max_gas_price` | string | EVM legacy | Maximum legacy gas price. |
 | `max_fee_per_gas` | string | EVM EIP-1559, ERC-4337, EIP-7702 type-4 | Maximum fee cap. |
@@ -36,9 +36,10 @@ The `policy` object is attached to a key and enforced at sign time.
 Current enforcement rules:
 
 - Sign requests fail if the key is disabled.
-- `source_address` must match the stored key address.
-- TRON owner-based resource, governance, and reward requests use `owner_address`, which must match the stored key address.
+- `source_address` must match the protocol identity derived from the resolved key.
+- TRON owner-based resource, governance, and reward requests use `owner_address`, which must match the resolved key's TRON identity.
 - Every key-backed signing request requires its exact registered operation in `allowed_signing_operations`; missing and empty lists deny all signing.
+- `solana_message` authorizes opaque message bytes and enforces activation, protocol restrictions, optional identity assertion, operation authorization and applicable network metadata policy. It provides no instruction, token, amount, account or fee-policy guarantees, even when semantic caps are stored on the key. See [Solana](solana.md).
 - Operation strings use exact canonical comparison. Policy writes reject unknown, case/whitespace variants, and duplicates. A corrupted stored list denies all signing even if it also contains the matching operation.
 - EVM contract calls require a destination and at least four decoded calldata bytes. A missing destination cannot create a contract through this route.
 - Direct EVM contract calls normalize destination addresses before allowlist comparison, accepting equivalent lowercase and checksum encodings. A non-empty `allowed_contract_destinations` takes precedence over `allowed_token_contracts`; otherwise the token allowlist applies. Structured EVM requests still require canonical lowercase addresses.
@@ -131,8 +132,8 @@ All sign routes use the same custody abstraction:
 
 - `mvp` keys are generated or imported by the plugin and stored in its Vault-backed logical storage.
 - `pkcs11` key records contain a public key and `external_signer_ref`. The deployment must inject a compatible external resolver; this repository does not ship a turnkey PKCS#11 runtime integration.
-- The custody material must expose the public key and return a valid secp256k1 signature for the internally reconstructed 32-byte digest.
-- CSign validates the custody public key, canonicalizes low-S output, derives recovery parity, and recovers the final signer before returning.
+- Custody exposes canonical public-key material and must support the operation's uniquely resolved signing scheme/input capability. EVM/TRON use secp256k1 ECDSA over reconstructed digests; Solana uses generic managed Ed25519 over the exact supplied message bytes.
+- CSign verifies every generated signature against the resolved public key before returning. EVM/TRON retain low-S normalization, recovery parity and artifact verification; Solana returns a detached Ed25519 signature. External custody integrations remain secp256k1 only.
 
 Private keys and external-signer credentials are never returned by these endpoints. There is no public custody-level `sign(hash)` method.
 
@@ -144,6 +145,8 @@ CSign intentionally does not:
 - simulate UserOperation validation or a type-4 transaction;
 - create a Paymaster signature, manage deposits, or fund a Paymaster;
 - install/revoke delegation, broadcast a transaction, or track whether an artifact was consumed;
-- accept generic raw hashes, arbitrary bytes, caller-defined EIP-712 schemas, serialized unsigned authorizations, or serialized unsigned transactions.
+- expose unrestricted raw-hash or arbitrary-byte signing, accept caller-defined EIP-712 schemas, or accept serialized unsigned EVM/TRON transactions or authorizations for signing.
+
+The explicitly authorized `solana_message` operation accepts opaque Solana message bytes. The Gateway owns their semantics, transaction construction, signer coordination, RPC and submission. This operation neither accepts nor rewrites a transaction envelope.
 
 The caller is responsible for obtaining current chain state, choosing every nonce/gas/fee/deadline, ensuring the selected account and EntryPoint are deployed as expected, submitting artifacts, and handling replay/lifecycle policy. `request_id` is a correlation identifier only and does not create idempotency storage.
