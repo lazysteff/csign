@@ -3,8 +3,8 @@ package policy
 import (
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/signingops"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/signingops"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 )
 
 // SemanticallyEqual compares enforced policy values after canonicalizing fields

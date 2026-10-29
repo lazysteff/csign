@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/chain-signer/chain-signer/internal/cryptography"
+	"github.com/lazysteff/csign/v2/internal/cryptography"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 

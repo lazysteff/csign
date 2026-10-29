@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/stretchr/testify/require"
 )
 

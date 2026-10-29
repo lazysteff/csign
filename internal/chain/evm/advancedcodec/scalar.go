@@ -3,7 +3,7 @@ package advancedcodec
 import (
 	"math/big"
 
-	enc "github.com/chain-signer/chain-signer/internal/encoding"
+	enc "github.com/lazysteff/csign/v2/internal/encoding"
 	"github.com/ethereum/go-ethereum/common"
 )
 

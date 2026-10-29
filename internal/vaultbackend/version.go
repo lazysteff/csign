@@ -3,9 +3,9 @@ package vaultbackend
 import (
 	"context"
 
-	"github.com/chain-signer/chain-signer/internal/chain/evm/advancedregistry"
-	"github.com/chain-signer/chain-signer/internal/version"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/chain/evm/advancedregistry"
+	"github.com/lazysteff/csign/v2/internal/version"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )

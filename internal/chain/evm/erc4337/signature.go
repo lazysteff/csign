@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/chain/evm/rsv27"
+	"github.com/lazysteff/csign/v2/internal/chain/evm/rsv27"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )

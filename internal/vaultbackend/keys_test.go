@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/chain-signer/chain-signer/internal/routes"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/routes"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
 )

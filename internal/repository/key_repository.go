@@ -7,13 +7,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/chain-signer/chain-signer/internal/chain"
-	"github.com/chain-signer/chain-signer/internal/custody"
-	"github.com/chain-signer/chain-signer/internal/domain"
-	enc "github.com/chain-signer/chain-signer/internal/encoding"
-	"github.com/chain-signer/chain-signer/internal/keyid"
-	"github.com/chain-signer/chain-signer/internal/policy"
-	"github.com/chain-signer/chain-signer/internal/signingops"
+	"github.com/lazysteff/csign/v2/internal/chain"
+	"github.com/lazysteff/csign/v2/internal/custody"
+	"github.com/lazysteff/csign/v2/internal/domain"
+	enc "github.com/lazysteff/csign/v2/internal/encoding"
+	"github.com/lazysteff/csign/v2/internal/keyid"
+	"github.com/lazysteff/csign/v2/internal/policy"
+	"github.com/lazysteff/csign/v2/internal/signingops"
 	"github.com/hashicorp/vault/sdk/logical"
 )
 

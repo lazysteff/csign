@@ -1,5 +1,13 @@
 # Changelog
 
+## v2.0.1 - 2026-10-29
+
+- Correct the Go module path to `github.com/lazysteff/csign/v2` and migrate all internal imports and Go consumer examples.
+- Add a release gate that resolves the exact published tag through the Go module proxy from a clean external consumer, then builds the public client and Vault plugin without local replacements or a workspace.
+- Document v2 installation, migration from the old module path, and version discovery. The HTTP API remains `v1`.
+
+The existing v2.0.0 tag is preserved. Its module declaration prevents consumption as a Go v2 module; Go consumers should use v2.0.1 or later.
+
 ## v2.0.0 - 2026-10-28
 
 - Separate managed key types, signing schemes, internal input capabilities, protocol identity and custody execution.

@@ -116,12 +116,20 @@ This first runs `make verify`. If tests or golangci-lint fail, no release artifa
 ### Publish a release
 
 ```bash
-VERSION=v2.0.0 make publish-release
+VERSION=v2.0.1 make publish-release
 ```
 
-This is the supported release path. It requires a clean `main` worktree, verifies the changelog entry, runs the gated artifact build, creates and pushes the annotated tag, and lets the GitHub Actions release workflow publish the GitHub release. The workflow runs the same verification gate again before uploading release assets.
+This is the supported release path. It requires a clean `main` worktree, verifies the changelog entry, runs the gated artifact build, creates and pushes the annotated tag, and lets the GitHub Actions release workflow publish the GitHub release. Before publishing, the workflow resolves the exact tagged module through `proxy.golang.org` into a temporary consumer outside the checkout with a fresh module cache, workspace disabled, and no replacement directives. It builds both the public Go client and the Vault plugin, then runs the same repository verification gate again before uploading release assets. A failure prevents GitHub release publication; the pushed tag is retained and must never be moved.
 
 The requested `VERSION` must match `internal/version/version.go`; mismatches are rejected before any tag or GitHub release is created.
+
+To repeat the external-consumer check for an already pushed stable tag:
+
+```bash
+VERSION=v2.0.1 make module-release-check
+```
+
+This check needs network access and does not use local source replacements. Repository-local builds alone do not verify Go module packaging.
 
 Do not create GitHub releases manually. Manual release creation bypasses the test and lint gate.
 
@@ -331,8 +339,34 @@ The new routes are forward-only. There is no migration, alias route, compatibili
 
 ## Use from Go
 
-The repository ships with a small Vault client package at `github.com/chain-signer/chain-signer/pkg/client`.
+The repository ships with a small Vault client package at `github.com/lazysteff/csign/v2/pkg/client`.
 The client is organized by capability through `Keys`, `Signing`, and `Payloads`.
+
+Install a stable v2 release in your consumer module:
+
+```bash
+go get github.com/lazysteff/csign/v2@v2.0.1
+go build github.com/lazysteff/csign/v2/cmd/chain-signer-plugin
+```
+
+For version discovery, query the v2 module path:
+
+```bash
+go list -m -versions github.com/lazysteff/csign/v2
+go list -m -json github.com/lazysteff/csign/v2@latest
+```
+
+The unsuffixed `github.com/lazysteff/csign@latest` endpoint remains on v1 by Go's major-version rules. The original v2.0.0 tag has an invalid v2 module declaration and cannot be used as a Go module, including with `+incompatible`; use v2.0.1 or later. Existing tags are not rewritten.
+
+When migrating, rewrite imports from `github.com/chain-signer/chain-signer/...` (or the unsuffixed repository path) to `github.com/lazysteff/csign/v2/...`, remove the old module requirement and any replacement that maps the old path to this repository, then run `go mod tidy`. Replacing the old module path with v2 is not a substitute for migrating imports: v2's internal imports use the canonical v2 path. The Go module major version does not change the HTTP API version or the `pkg/api/v1` package suffix.
+
+For local development only, a consumer that already imports the canonical v2 path can use:
+
+```go
+replace github.com/lazysteff/csign/v2 => ../csign
+```
+
+Remove this replacement to validate a published release.
 
 Structured-operation methods are `Keys.SetPolicy`, `Signing.SignEVMEIP712`, `Signing.SignEVMUserOperation`, `Signing.SignEVMEIP7702Authorization`, `Signing.SignEVMEIP7702Transaction`, `Payloads.VerifyEVMEIP712`, `Payloads.VerifyEVMUserOperation`, `Payloads.VerifyEVMEIP7702Authorization`, and `Payloads.RecoverEVMEIP7702Transaction`. `Keys.SetPolicy` accepts the canonical `v1.Policy` fields through the source-compatible `v1.StructuredPolicy` alias; the server rejects deprecated opaque context on update. `Client.Version` returns typed protocol capabilities used to select compatible schema and protocol identifiers. Classified errors are exposed as `*client.APIError`; `client.ErrorCode(err)` returns a typed `v1.ErrorCode` for comparison with constants such as `v1.ErrorUnsupportedEIP712Schema`.
 
@@ -344,8 +378,8 @@ import (
 	"log"
 	"os"
 
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
-	csclient "github.com/chain-signer/chain-signer/pkg/client"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
+	csclient "github.com/lazysteff/csign/v2/pkg/client"
 	"github.com/hashicorp/vault/api"
 )
 

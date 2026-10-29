@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 
-	"github.com/chain-signer/chain-signer/internal/repository"
+	"github.com/lazysteff/csign/v2/internal/repository"
 )
 
 func isRepositoryKeyNotFound(err error) bool {

@@ -3,11 +3,11 @@ package policy
 import (
 	"strings"
 
-	"github.com/chain-signer/chain-signer/internal/chain/solana"
-	"github.com/chain-signer/chain-signer/internal/custody"
-	"github.com/chain-signer/chain-signer/internal/domain"
-	"github.com/chain-signer/chain-signer/internal/faults"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/chain/solana"
+	"github.com/lazysteff/csign/v2/internal/custody"
+	"github.com/lazysteff/csign/v2/internal/domain"
+	"github.com/lazysteff/csign/v2/internal/faults"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 )
 
 func ValidateSolanaMessage(key domain.Key, request any) error {

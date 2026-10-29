@@ -4,17 +4,17 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/chain-signer/chain-signer/internal/chain"
-	"github.com/chain-signer/chain-signer/internal/cryptography"
-	"github.com/chain-signer/chain-signer/internal/custody"
-	"github.com/chain-signer/chain-signer/internal/domain"
-	enc "github.com/chain-signer/chain-signer/internal/encoding"
-	"github.com/chain-signer/chain-signer/internal/faults"
-	"github.com/chain-signer/chain-signer/internal/keyid"
-	"github.com/chain-signer/chain-signer/internal/policy"
-	"github.com/chain-signer/chain-signer/internal/routes"
-	"github.com/chain-signer/chain-signer/internal/signingops"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/chain"
+	"github.com/lazysteff/csign/v2/internal/cryptography"
+	"github.com/lazysteff/csign/v2/internal/custody"
+	"github.com/lazysteff/csign/v2/internal/domain"
+	enc "github.com/lazysteff/csign/v2/internal/encoding"
+	"github.com/lazysteff/csign/v2/internal/faults"
+	"github.com/lazysteff/csign/v2/internal/keyid"
+	"github.com/lazysteff/csign/v2/internal/policy"
+	"github.com/lazysteff/csign/v2/internal/routes"
+	"github.com/lazysteff/csign/v2/internal/signingops"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 )
 
 type KeyLookup interface {

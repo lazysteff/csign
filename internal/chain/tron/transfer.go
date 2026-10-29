@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/cryptography"
-	enc "github.com/chain-signer/chain-signer/internal/encoding"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/cryptography"
+	enc "github.com/lazysteff/csign/v2/internal/encoding"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
 	"github.com/fbsobreira/gotron-sdk/pkg/standards/trc20enc"
 	"google.golang.org/protobuf/types/known/anypb"

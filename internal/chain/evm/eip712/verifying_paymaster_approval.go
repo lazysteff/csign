@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	enc "github.com/chain-signer/chain-signer/internal/encoding"
-	"github.com/chain-signer/chain-signer/internal/faults"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	enc "github.com/lazysteff/csign/v2/internal/encoding"
+	"github.com/lazysteff/csign/v2/internal/faults"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/signer/core/apitypes"

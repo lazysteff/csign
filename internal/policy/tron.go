@@ -3,10 +3,10 @@ package policy
 import (
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/chain"
-	"github.com/chain-signer/chain-signer/internal/domain"
-	"github.com/chain-signer/chain-signer/internal/faults"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/chain"
+	"github.com/lazysteff/csign/v2/internal/domain"
+	"github.com/lazysteff/csign/v2/internal/faults"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 )
 
 func ValidateTRXTransfer(key domain.Key, req *v1.TRXTransferSignRequest) error {

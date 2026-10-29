@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
+	"github.com/lazysteff/csign/v2/internal/custody"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"

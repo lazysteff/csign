@@ -1,4 +1,4 @@
-module github.com/chain-signer/chain-signer
+module github.com/lazysteff/csign/v2
 
 go 1.27.1
 

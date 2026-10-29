@@ -3,8 +3,8 @@ package tron
 import (
 	"context"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/custody"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 )
 
 // Direct helpers preserve existing package integrations; Vault requests use

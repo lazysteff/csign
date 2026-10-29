@@ -3,12 +3,12 @@ package policy
 import (
 	"math"
 
-	"github.com/chain-signer/chain-signer/internal/chain/evm/advancedcodec"
-	"github.com/chain-signer/chain-signer/internal/chain/evm/eip7702"
-	"github.com/chain-signer/chain-signer/internal/domain"
-	enc "github.com/chain-signer/chain-signer/internal/encoding"
-	"github.com/chain-signer/chain-signer/internal/faults"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/chain/evm/advancedcodec"
+	"github.com/lazysteff/csign/v2/internal/chain/evm/eip7702"
+	"github.com/lazysteff/csign/v2/internal/domain"
+	enc "github.com/lazysteff/csign/v2/internal/encoding"
+	"github.com/lazysteff/csign/v2/internal/faults"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/ethereum/go-ethereum/common"
 )
 

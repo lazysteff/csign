@@ -7,16 +7,16 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/chain-signer/chain-signer/internal/chain/evm"
-	"github.com/chain-signer/chain-signer/internal/chain/solana"
-	"github.com/chain-signer/chain-signer/internal/chain/tron"
-	"github.com/chain-signer/chain-signer/internal/cryptography"
-	"github.com/chain-signer/chain-signer/internal/domain"
-	"github.com/chain-signer/chain-signer/internal/faults"
-	"github.com/chain-signer/chain-signer/internal/policy"
-	"github.com/chain-signer/chain-signer/internal/routes"
-	"github.com/chain-signer/chain-signer/internal/signingops"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/chain/evm"
+	"github.com/lazysteff/csign/v2/internal/chain/solana"
+	"github.com/lazysteff/csign/v2/internal/chain/tron"
+	"github.com/lazysteff/csign/v2/internal/cryptography"
+	"github.com/lazysteff/csign/v2/internal/domain"
+	"github.com/lazysteff/csign/v2/internal/faults"
+	"github.com/lazysteff/csign/v2/internal/policy"
+	"github.com/lazysteff/csign/v2/internal/routes"
+	"github.com/lazysteff/csign/v2/internal/signingops"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 )
 
 type OperationPreparation func(context.Context, cryptography.Capability, cryptography.PublicKey, any) (*cryptography.Prepared, error)

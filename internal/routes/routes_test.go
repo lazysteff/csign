@@ -3,7 +3,7 @@ package routes_test
 import (
 	"testing"
 
-	"github.com/chain-signer/chain-signer/internal/routes"
+	"github.com/lazysteff/csign/v2/internal/routes"
 	"github.com/stretchr/testify/require"
 )
 

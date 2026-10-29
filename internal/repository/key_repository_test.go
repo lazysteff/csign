@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/chain-signer/chain-signer/internal/chain/evm"
-	"github.com/chain-signer/chain-signer/internal/custody"
-	"github.com/chain-signer/chain-signer/internal/domain"
-	"github.com/chain-signer/chain-signer/internal/faults"
-	"github.com/chain-signer/chain-signer/internal/signingops"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/chain/evm"
+	"github.com/lazysteff/csign/v2/internal/custody"
+	"github.com/lazysteff/csign/v2/internal/domain"
+	"github.com/lazysteff/csign/v2/internal/faults"
+	"github.com/lazysteff/csign/v2/internal/signingops"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
 )

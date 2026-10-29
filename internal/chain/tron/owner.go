@@ -4,8 +4,8 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/cryptography"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/cryptography"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"

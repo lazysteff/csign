@@ -46,5 +46,5 @@ git push origin "$VERSION"
 
 cat <<EOF
 Pushed ${VERSION}.
-The GitHub Actions release workflow will run make verify again before publishing the GitHub release.
+The GitHub Actions release workflow will verify external Go module consumption and run make verify again before publishing the GitHub release.
 EOF

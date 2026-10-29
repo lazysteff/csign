@@ -7,14 +7,14 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/chain-signer/chain-signer/internal/cryptography"
-	"github.com/chain-signer/chain-signer/internal/custody"
-	"github.com/chain-signer/chain-signer/internal/domain"
-	enc "github.com/chain-signer/chain-signer/internal/encoding"
-	"github.com/chain-signer/chain-signer/internal/faults"
-	"github.com/chain-signer/chain-signer/internal/policy"
-	"github.com/chain-signer/chain-signer/internal/signingops"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/cryptography"
+	"github.com/lazysteff/csign/v2/internal/custody"
+	"github.com/lazysteff/csign/v2/internal/domain"
+	enc "github.com/lazysteff/csign/v2/internal/encoding"
+	"github.com/lazysteff/csign/v2/internal/faults"
+	"github.com/lazysteff/csign/v2/internal/policy"
+	"github.com/lazysteff/csign/v2/internal/signingops"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/stretchr/testify/require"
 )
 

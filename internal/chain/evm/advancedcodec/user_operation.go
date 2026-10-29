@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/chain-signer/chain-signer/internal/chain/evm/advancedregistry"
-	"github.com/chain-signer/chain-signer/internal/chain/evm/erc4337"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/chain/evm/advancedregistry"
+	"github.com/lazysteff/csign/v2/internal/chain/evm/erc4337"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/ethereum/go-ethereum/common"
 )
 

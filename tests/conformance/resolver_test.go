@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
-	"github.com/chain-signer/chain-signer/internal/domain"
+	"github.com/lazysteff/csign/v2/internal/custody"
+	"github.com/lazysteff/csign/v2/internal/domain"
 )
 
 type staticResolver struct {

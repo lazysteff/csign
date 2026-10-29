@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/chain/evm/rsv27"
-	enc "github.com/chain-signer/chain-signer/internal/encoding"
+	"github.com/lazysteff/csign/v2/internal/chain/evm/rsv27"
+	enc "github.com/lazysteff/csign/v2/internal/encoding"
 	"github.com/ethereum/go-ethereum/common"
 )
 

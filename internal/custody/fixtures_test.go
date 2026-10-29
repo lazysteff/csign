@@ -4,7 +4,7 @@ import (
 	"crypto/ecdsa"
 	"testing"
 
-	enc "github.com/chain-signer/chain-signer/internal/encoding"
+	enc "github.com/lazysteff/csign/v2/internal/encoding"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 )

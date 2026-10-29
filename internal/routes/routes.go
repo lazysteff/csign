@@ -1,6 +1,6 @@
 package routes
 
-import "github.com/chain-signer/chain-signer/internal/keyid"
+import "github.com/lazysteff/csign/v2/internal/keyid"
 
 const (
 	SolanaMessageSign = "v1/solana/messages/sign"

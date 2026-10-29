@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/chain-signer/chain-signer/internal/vaultbackend"
+	"github.com/lazysteff/csign/v2/internal/vaultbackend"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault/api"
 	vaultplugin "github.com/hashicorp/vault/sdk/plugin"

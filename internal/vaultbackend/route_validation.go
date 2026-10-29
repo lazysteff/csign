@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/signingops"
+	"github.com/lazysteff/csign/v2/internal/signingops"
 )
 
 func validateRouteRegistrations(catalog *signingops.Catalog, registrations []pathRegistration) error {

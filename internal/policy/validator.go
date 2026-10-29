@@ -3,10 +3,10 @@ package policy
 import (
 	"strings"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
-	"github.com/chain-signer/chain-signer/internal/domain"
-	"github.com/chain-signer/chain-signer/internal/faults"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/custody"
+	"github.com/lazysteff/csign/v2/internal/domain"
+	"github.com/lazysteff/csign/v2/internal/faults"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 )
 
 type Validator func(domain.Key, any) error

@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/chain-signer/chain-signer/internal/policy"
-	"github.com/chain-signer/chain-signer/internal/routes"
-	"github.com/chain-signer/chain-signer/internal/signingops"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/policy"
+	"github.com/lazysteff/csign/v2/internal/routes"
+	"github.com/lazysteff/csign/v2/internal/signingops"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"
 )

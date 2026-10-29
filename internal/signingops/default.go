@@ -3,8 +3,8 @@ package signingops
 import (
 	"sync"
 
-	"github.com/chain-signer/chain-signer/internal/routes"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/routes"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 )
 
 var (

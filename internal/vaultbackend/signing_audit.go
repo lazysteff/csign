@@ -3,7 +3,7 @@ package vaultbackend
 import (
 	"context"
 
-	"github.com/chain-signer/chain-signer/internal/service"
+	"github.com/lazysteff/csign/v2/internal/service"
 	"github.com/hashicorp/go-hclog"
 	metrics "github.com/hashicorp/go-metrics"
 )

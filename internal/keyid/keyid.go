@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/chain-signer/chain-signer/internal/faults"
+	"github.com/lazysteff/csign/v2/internal/faults"
 )
 
 // Validate enforces the shared logical key_id contract on decoded values.

@@ -1,6 +1,6 @@
 package client
 
-import v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+import v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 
 func NewTRONOwnerSignRequestBase(keyID, network, requestID, ownerAddress string) v1.TRONOwnerSignRequestBase {
 	return v1.TRONOwnerSignRequestBase{

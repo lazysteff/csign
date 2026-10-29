@@ -4,12 +4,12 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/chain/evm"
-	"github.com/chain-signer/chain-signer/internal/chain/solana"
-	"github.com/chain-signer/chain-signer/internal/chain/tron"
-	"github.com/chain-signer/chain-signer/internal/cryptography"
-	"github.com/chain-signer/chain-signer/internal/domain"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/chain/evm"
+	"github.com/lazysteff/csign/v2/internal/chain/solana"
+	"github.com/lazysteff/csign/v2/internal/chain/tron"
+	"github.com/lazysteff/csign/v2/internal/cryptography"
+	"github.com/lazysteff/csign/v2/internal/domain"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 )
 
 func DeriveSignerAddress(chainFamily string, pub *ecdsa.PublicKey) (string, error) {

@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/chain-signer/chain-signer/internal/custody"
-	"github.com/chain-signer/chain-signer/internal/policy"
-	"github.com/chain-signer/chain-signer/internal/repository"
-	"github.com/chain-signer/chain-signer/internal/service"
-	"github.com/chain-signer/chain-signer/internal/signingops"
+	"github.com/lazysteff/csign/v2/internal/custody"
+	"github.com/lazysteff/csign/v2/internal/policy"
+	"github.com/lazysteff/csign/v2/internal/repository"
+	"github.com/lazysteff/csign/v2/internal/service"
+	"github.com/lazysteff/csign/v2/internal/signingops"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 )

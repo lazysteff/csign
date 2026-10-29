@@ -4,7 +4,7 @@ import (
 	"errors"
 	"reflect"
 
-	"github.com/chain-signer/chain-signer/internal/faults"
+	"github.com/lazysteff/csign/v2/internal/faults"
 )
 
 type keyIDCarrier interface {

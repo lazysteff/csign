@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/chain-signer/chain-signer/internal/chain/evm/eip7702"
-	enc "github.com/chain-signer/chain-signer/internal/encoding"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/chain/evm/eip7702"
+	enc "github.com/lazysteff/csign/v2/internal/encoding"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 	"github.com/ethereum/go-ethereum/common"
 )
 

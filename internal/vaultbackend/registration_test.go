@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chain-signer/chain-signer/internal/routes"
+	"github.com/lazysteff/csign/v2/internal/routes"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
 	"github.com/stretchr/testify/require"

@@ -1,7 +1,7 @@
 GO ?= go
 GOLANGCI_LINT ?= golangci-lint
 
-.PHONY: build test lint lint-backend deps-check verify fmt tidy release publish-release
+.PHONY: build test lint lint-backend deps-check verify fmt tidy release publish-release module-release-check
 
 build:
 	mkdir -p dist
@@ -32,6 +32,9 @@ release:
 
 publish-release:
 	@if [ -n "$(VERSION)" ]; then VERSION="$(VERSION)" ./packaging/publish_release.sh; else ./packaging/publish_release.sh; fi
+
+module-release-check:
+	./packaging/check_module.sh "$(VERSION)"
 
 fmt:
 	$(GO) fmt ./...

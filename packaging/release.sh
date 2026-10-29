@@ -19,6 +19,12 @@ if [[ "$VERSION" != "$EMBEDDED_VERSION" ]]; then
 	exit 1
 fi
 
+MODULE="$("$GO" list -m -f '{{.Path}}')"
+if [[ "$MODULE" != "github.com/lazysteff/csign/v2" || ! "$VERSION" =~ ^v2\.[0-9]+\.[0-9]+$ ]]; then
+	echo "stable v2 releases require module github.com/lazysteff/csign/v2 and a v2.x.y version" >&2
+	exit 1
+fi
+
 "${ROOT}/packaging/release_notes.sh" "$VERSION" >/dev/null
 "$MAKE" verify
 

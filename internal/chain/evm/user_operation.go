@@ -4,11 +4,11 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 
-	"github.com/chain-signer/chain-signer/internal/chain/evm/advancedcodec"
-	"github.com/chain-signer/chain-signer/internal/chain/evm/erc4337"
-	"github.com/chain-signer/chain-signer/internal/cryptography"
-	enc "github.com/chain-signer/chain-signer/internal/encoding"
-	v1 "github.com/chain-signer/chain-signer/pkg/api/v1"
+	"github.com/lazysteff/csign/v2/internal/chain/evm/advancedcodec"
+	"github.com/lazysteff/csign/v2/internal/chain/evm/erc4337"
+	"github.com/lazysteff/csign/v2/internal/cryptography"
+	enc "github.com/lazysteff/csign/v2/internal/encoding"
+	v1 "github.com/lazysteff/csign/v2/pkg/api/v1"
 )
 
 func PrepareUserOperation(pub *ecdsa.PublicKey, req *v1.EVMUserOperationSignRequest) (*cryptography.Prepared, error) {
